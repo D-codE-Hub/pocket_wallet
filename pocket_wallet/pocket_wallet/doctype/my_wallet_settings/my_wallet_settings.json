@@ -1,0 +1,74 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2024-10-28 18:44:26.366888",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "default_category",
+  "default_wallet_account"
+ ],
+ "fields": [
+  {
+   "fieldname": "default_category",
+   "fieldtype": "Link",
+   "label": "Default Category",
+   "options": "Wallet Category"
+  },
+  {
+   "fieldname": "default_wallet_account",
+   "fieldtype": "Link",
+   "label": "Default Wallet Account",
+   "options": "Wallet Account"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2024-10-28 18:46:22.887737",
+ "modified_by": "Administrator",
+ "module": "Pocket Wallet",
+ "name": "My Wallet Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Pocket Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "if_owner": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Pocket User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

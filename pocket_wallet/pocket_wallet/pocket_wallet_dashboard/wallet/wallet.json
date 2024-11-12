@@ -1,0 +1,32 @@
+{
+ "cards": [
+  {
+   "card": "Monthly Income"
+  },
+  {
+   "card": "Monthly Expense"
+  }
+ ],
+ "charts": [
+  {
+   "chart": "Monthly Income",
+   "width": "Half"
+  },
+  {
+   "chart": "Monthly Expense",
+   "width": "Half"
+  }
+ ],
+ "creation": "2024-10-28 13:58:12.548266",
+ "dashboard_name": "Wallet",
+ "docstatus": 0,
+ "doctype": "Dashboard",
+ "idx": 0,
+ "is_default": 0,
+ "is_standard": 1,
+ "modified": "2024-10-28 17:59:22.189360",
+ "modified_by": "Administrator",
+ "module": "Pocket Wallet",
+ "name": "Wallet",
+ "owner": "Administrator"
+}
