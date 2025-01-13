@@ -9,10 +9,12 @@
   "type",
   "category",
   "amount",
-  "account",
-  "time",
-  "date",
+  "column_break_amxs",
   "status",
+  "account",
+  "column_break_pwgx",
+  "date",
+  "time",
   "note"
  ],
  "fields": [
@@ -78,11 +80,19 @@
    "label": "Account",
    "options": "Wallet Account",
    "reqd": 1
+  },
+  {
+   "fieldname": "column_break_amxs",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_pwgx",
+   "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-10-28 18:26:48.046827",
+ "modified": "2024-11-22 10:37:26.239733",
  "modified_by": "Administrator",
  "module": "Pocket Wallet",
  "name": "My Wallet",

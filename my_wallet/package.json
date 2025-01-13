@@ -1,0 +1,27 @@
+{
+  "name": "frappe-ui-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build --base=/assets/pocket_wallet/my_wallet/ && yarn copy-html-entry",
+    "preview": "vite preview",
+    "copy-html-entry": "cp ../pocket_wallet/public/my_wallet/index.html ../pocket_wallet/www/my_wallet.html"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.7",
+    "feather-icons": "^4.29.2",
+    "frappe-charts": "^1.6.2",
+    "frappe-ui": "^0.1.72",
+    "vue": "^3.5.12",
+    "vue-chartjs": "^5.3.2",
+    "vue-router": "^4.4.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.1.4",
+    "autoprefixer": "^10.4.2",
+    "postcss": "^8.4.5",
+    "tailwindcss": "^3.4.14",
+    "vite": "^5.4.10"
+  }
+}
