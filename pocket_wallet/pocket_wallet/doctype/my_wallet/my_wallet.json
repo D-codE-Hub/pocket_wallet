@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "format:{type}-{account}-{DD}-{MM}-{#####}",
+ "autoname": "format:{type}-{account}-{date}-{#####}",
  "creation": "2024-10-28 13:09:38.292635",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -12,6 +12,7 @@
   "column_break_amxs",
   "status",
   "account",
+  "to_account",
   "column_break_pwgx",
   "date",
   "time",
@@ -52,7 +53,7 @@
    "fieldname": "type",
    "fieldtype": "Select",
    "label": "Type",
-   "options": "Expense\nIncome",
+   "options": "Expense\nIncome\nTransfer",
    "reqd": 1
   },
   {
@@ -88,11 +89,19 @@
   {
    "fieldname": "column_break_pwgx",
    "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.type === \"Transfer\"",
+   "fieldname": "to_account",
+   "fieldtype": "Link",
+   "label": "To Account",
+   "mandatory_depends_on": "eval: doc.type === \"Transfer\"",
+   "options": "Wallet Account"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-11-22 10:37:26.239733",
+ "modified": "2025-02-10 10:43:35.807286",
  "modified_by": "Administrator",
  "module": "Pocket Wallet",
  "name": "My Wallet",
