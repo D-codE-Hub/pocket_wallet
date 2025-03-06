@@ -7,7 +7,9 @@
  "engine": "InnoDB",
  "field_order": [
   "account_name",
-  "account_type"
+  "account_type",
+  "account_balance",
+  "edit_account_balance"
  ],
  "fields": [
   {
@@ -22,11 +24,25 @@
    "fieldname": "account_type",
    "fieldtype": "Data",
    "label": "Account Type"
+  },
+  {
+   "default": "0",
+   "fieldname": "account_balance",
+   "fieldtype": "Currency",
+   "label": "Account Balance",
+   "read_only_depends_on": "eval:doc.edit_account_balance == 0",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "edit_account_balance",
+   "fieldtype": "Check",
+   "label": "Edit Account Balance"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-10-28 13:30:13.519696",
+ "modified": "2025-03-06 09:33:50.838058",
  "modified_by": "Administrator",
  "module": "Pocket Wallet",
  "name": "Wallet Account",
