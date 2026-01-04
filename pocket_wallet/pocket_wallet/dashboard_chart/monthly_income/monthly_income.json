@@ -23,7 +23,7 @@
  "parent_document_type": "",
  "roles": [],
  "source": "",
- "time_interval": "Daily",
+ "time_interval": "Monthly",
  "timeseries": 1,
  "timespan": "Last Month",
  "type": "Line",

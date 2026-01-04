@@ -1,6 +1,6 @@
 ## Pocket Wallet
 
-An App to track dilay cash flows
+An App to track daily cash flows
 
 #### License
 

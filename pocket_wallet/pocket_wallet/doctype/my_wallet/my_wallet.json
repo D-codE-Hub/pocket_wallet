@@ -59,13 +59,14 @@
    "set_only_once": 1
   },
   {
+   "depends_on": "eval:doc.type != 'Transfer'",
    "fieldname": "category",
    "fieldtype": "Link",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Category",
-   "options": "Wallet Category",
-   "reqd": 1
+   "mandatory_depends_on": "eval:doc.type != 'Transfer'",
+   "options": "Wallet Category"
   },
   {
    "fieldname": "status",
