@@ -8,6 +8,20 @@ import call from "../../../doppio/libs/controllers/call";
 import socket from "../../../doppio/libs/controllers/socket";
 import Auth from "../../../doppio/libs/controllers/auth";
 
+// PWA: Register service worker
+import { registerSW } from 'virtual:pwa-register';
+
+const updateSW = registerSW({
+	onNeedRefresh() {
+		if (confirm('A new version of Pocket Wallet is available. Reload to update?')) {
+			updateSW(true);
+		}
+	},
+	onOfflineReady() {
+		console.log('Pocket Wallet is ready for offline use.');
+	},
+});
+
 const app = createApp(App);
 const auth = reactive(new Auth());
 

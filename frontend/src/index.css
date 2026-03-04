@@ -1,4 +1,16 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* PWA safe area support for iPhone notch/Dynamic Island */
+@supports (padding-top: env(safe-area-inset-top)) {
+  html {
+    padding: 0;
+  }
+  body {
+    /* Ensure the background extends behind the status bar */
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
 	
