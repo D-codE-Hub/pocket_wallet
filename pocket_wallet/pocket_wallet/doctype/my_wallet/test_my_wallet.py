@@ -4,319 +4,230 @@
 import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.exceptions import ValidationError
-from decimal import Decimal
 
 
 class TestMyWallet(FrappeTestCase):
 	"""Test suite for MyWallet DocType covering transactions, balance updates, and edge cases."""
 
-	def setUp(self) -> None:
-		"""Set up test fixtures: create accounts and categories."""
-		super().setUp()
-		
-		# Create test accounts
-		if not frappe.db.exists("Wallet Account", "Test Cash"):
-			account1 = frappe.new_doc("Wallet Account")
-			account1.account_name = "Test Cash"
-			account1.account_type = "Cash"
-			account1.account_balance = 1000
-			account1.save()
-		
-		if not frappe.db.exists("Wallet Account", "Test Savings"):
-			account2 = frappe.new_doc("Wallet Account")
-			account2.account_name = "Test Savings"
-			account2.account_type = "Savings"
-			account2.account_balance = 5000
-			account2.save()
-		
-		# Create test categories
-		if not frappe.db.exists("Wallet Category", "Food"):
-			cat1 = frappe.new_doc("Wallet Category")
-			cat1.category = "Food"
-			cat1.category_type = "Expense"
-			cat1.save()
-		
-		if not frappe.db.exists("Wallet Category", "Salary"):
-			cat2 = frappe.new_doc("Wallet Category")
-			cat2.category = "Salary"
-			cat2.category_type = "Income"
-			cat2.save()
+	CASH_INITIAL = 1000
+	SAVINGS_INITIAL = 5000
 
-	def tearDown(self) -> None:
-		"""Clean up test data."""
-		# Delete test transactions
-		frappe.db.delete("My Wallet", {"account": "Test Cash"})
-		frappe.db.delete("My Wallet", {"account": "Test Savings"})
+	def setUp(self):
+		"""Set up test fixtures: create accounts, categories, and reset balances."""
+		super().setUp()
+
+		# ── accounts ───────────────────────────────────────────
+		for name, atype, balance in [
+			("Test Cash", "Cash", self.CASH_INITIAL),
+			("Test Savings", "Savings", self.SAVINGS_INITIAL),
+		]:
+			if not frappe.db.exists("Wallet Account", name):
+				doc = frappe.new_doc("Wallet Account")
+				doc.account_name = name
+				doc.account_type = atype
+				doc.account_balance = balance
+				doc.save()
+			else:
+				frappe.db.set_value("Wallet Account", name, "account_balance", balance)
+
+		# ── categories ─────────────────────────────────────────
+		for name, ctype in [("Food", "Expense"), ("Salary", "Income")]:
+			if not frappe.db.exists("Wallet Category", name):
+				doc = frappe.new_doc("Wallet Category")
+				doc.category = name
+				doc.category_type = ctype
+				doc.save()
+
+		frappe.db.commit()
+
+	def tearDown(self):
+		"""Delete test transactions via the ORM so on_trash reverses balances."""
+		for name in frappe.get_all(
+			"My Wallet",
+			filters={"account": ["in", ["Test Cash", "Test Savings"]]},
+			pluck="name",
+		):
+			frappe.delete_doc("My Wallet", name, force=True, ignore_permissions=True)
+		frappe.db.commit()
 		super().tearDown()
 
-	def test_expense_transaction_decreases_balance(self) -> None:
-		"""Test that creating an expense transaction decreases account balance."""
-		# Get initial balance
-		account = frappe.get_doc("Wallet Account", "Test Cash")
-		initial_balance = account.account_balance
-		
-		# Create expense transaction
-		expense = frappe.new_doc("My Wallet")
-		expense.type = "Expense"
-		expense.amount = 100
-		expense.category = "Food"
-		expense.account = "Test Cash"
-		expense.date = frappe.utils.today()
-		expense.time = frappe.utils.now_time()
-		expense.save()
-		
-		# Check balance decreased
-		account.reload()
-		self.assertEqual(
-			account.account_balance,
-			initial_balance - 100,
-			"Account balance should decrease by expense amount"
+	# ── helper ─────────────────────────────────────────────────
+
+	def _balance(self, account_name):
+		"""Return the current balance of a Wallet Account."""
+		return frappe.db.get_value("Wallet Account", account_name, "account_balance")
+
+	def _make_transaction(self, **kwargs):
+		"""Shortcut to create and save a My Wallet transaction."""
+		defaults = {
+			"type": "Expense",
+			"amount": 100,
+			"category": "Food",
+			"account": "Test Cash",
+			"date": frappe.utils.today(),
+			"time": frappe.utils.nowtime(),
+		}
+		defaults.update(kwargs)
+		doc = frappe.new_doc("My Wallet")
+		for k, v in defaults.items():
+			setattr(doc, k, v)
+		doc.save()
+		return doc
+
+	# ── 1. Basic balance updates ──────────────────────────────
+
+	def test_expense_decreases_balance(self):
+		"""Creating an expense decreases the account balance."""
+		self._make_transaction(type="Expense", amount=100, category="Food")
+		self.assertEqual(self._balance("Test Cash"), self.CASH_INITIAL - 100)
+
+	def test_income_increases_balance(self):
+		"""Creating an income increases the account balance."""
+		self._make_transaction(type="Income", amount=500, category="Salary")
+		self.assertEqual(self._balance("Test Cash"), self.CASH_INITIAL + 500)
+
+	def test_transfer_updates_both_accounts(self):
+		"""Transfer debits source and credits destination."""
+		self._make_transaction(
+			type="Transfer", amount=200,
+			account="Test Cash", to_account="Test Savings",
+			category="",
 		)
+		self.assertEqual(self._balance("Test Cash"), self.CASH_INITIAL - 200)
+		self.assertEqual(self._balance("Test Savings"), self.SAVINGS_INITIAL + 200)
 
-	def test_income_transaction_increases_balance(self) -> None:
-		"""Test that creating an income transaction increases account balance."""
-		account = frappe.get_doc("Wallet Account", "Test Cash")
-		initial_balance = account.account_balance
-		
-		# Create income transaction
-		income = frappe.new_doc("My Wallet")
-		income.type = "Income"
-		income.amount = 500
-		income.category = "Salary"
-		income.account = "Test Cash"
-		income.date = frappe.utils.today()
-		income.time = frappe.utils.now_time()
-		income.save()
-		
-		# Check balance increased
-		account.reload()
-		self.assertEqual(
-			account.account_balance,
-			initial_balance + 500,
-			"Account balance should increase by income amount"
+	# ── 2. Editing transactions ───────────────────────────────
+
+	def test_edit_expense_amount(self):
+		"""Editing an expense amount correctly adjusts the balance."""
+		txn = self._make_transaction(type="Expense", amount=100)
+		self.assertEqual(self._balance("Test Cash"), self.CASH_INITIAL - 100)
+
+		txn.amount = 250
+		txn.save()
+		# Balance should reflect only the new amount, not old + new
+		self.assertEqual(self._balance("Test Cash"), self.CASH_INITIAL - 250)
+
+	def test_edit_income_amount(self):
+		"""Editing an income amount correctly adjusts the balance."""
+		txn = self._make_transaction(type="Income", amount=300, category="Salary")
+		self.assertEqual(self._balance("Test Cash"), self.CASH_INITIAL + 300)
+
+		txn.amount = 100
+		txn.save()
+		self.assertEqual(self._balance("Test Cash"), self.CASH_INITIAL + 100)
+
+	def test_edit_account_moves_balance(self):
+		"""Changing the account reverses the old account and applies to the new one."""
+		txn = self._make_transaction(type="Expense", amount=200)
+		self.assertEqual(self._balance("Test Cash"), self.CASH_INITIAL - 200)
+		self.assertEqual(self._balance("Test Savings"), self.SAVINGS_INITIAL)
+
+		txn.account = "Test Savings"
+		txn.save()
+		# Old account restored, new account debited
+		self.assertEqual(self._balance("Test Cash"), self.CASH_INITIAL)
+		self.assertEqual(self._balance("Test Savings"), self.SAVINGS_INITIAL - 200)
+
+	def test_edit_transfer_amount(self):
+		"""Editing a transfer amount correctly adjusts both accounts."""
+		txn = self._make_transaction(
+			type="Transfer", amount=100,
+			account="Test Cash", to_account="Test Savings",
+			category="",
 		)
+		self.assertEqual(self._balance("Test Cash"), self.CASH_INITIAL - 100)
+		self.assertEqual(self._balance("Test Savings"), self.SAVINGS_INITIAL + 100)
 
-	def test_transfer_transaction_updates_both_accounts(self) -> None:
-		"""Test that transfer decreases source and increases destination account."""
-		source = frappe.get_doc("Wallet Account", "Test Cash")
-		dest = frappe.get_doc("Wallet Account", "Test Savings")
-		
-		source_initial = source.account_balance
-		dest_initial = dest.account_balance
-		
-		# Create transfer transaction
-		transfer = frappe.new_doc("My Wallet")
-		transfer.type = "Transfer"
-		transfer.amount = 200
-		transfer.account = "Test Cash"
-		transfer.to_account = "Test Savings"
-		transfer.date = frappe.utils.today()
-		transfer.time = frappe.utils.now_time()
-		transfer.save()
-		
-		# Check both accounts updated correctly
-		source.reload()
-		dest.reload()
-		
-		self.assertEqual(
-			source.account_balance,
-			source_initial - 200,
-			"Source account balance should decrease"
+		txn.amount = 300
+		txn.save()
+		self.assertEqual(self._balance("Test Cash"), self.CASH_INITIAL - 300)
+		self.assertEqual(self._balance("Test Savings"), self.SAVINGS_INITIAL + 300)
+
+	# ── 3. Deleting transactions ──────────────────────────────
+
+	def test_delete_expense_reverses_balance(self):
+		"""Deleting an expense restores the balance."""
+		txn = self._make_transaction(type="Expense", amount=100)
+		self.assertEqual(self._balance("Test Cash"), self.CASH_INITIAL - 100)
+
+		frappe.delete_doc("My Wallet", txn.name, force=True)
+		self.assertEqual(self._balance("Test Cash"), self.CASH_INITIAL)
+
+	def test_delete_income_reverses_balance(self):
+		"""Deleting an income restores the balance."""
+		txn = self._make_transaction(type="Income", amount=500, category="Salary")
+		frappe.delete_doc("My Wallet", txn.name, force=True)
+		self.assertEqual(self._balance("Test Cash"), self.CASH_INITIAL)
+
+	def test_delete_transfer_reverses_both_accounts(self):
+		"""Deleting a transfer reverses changes in both accounts."""
+		txn = self._make_transaction(
+			type="Transfer", amount=200,
+			account="Test Cash", to_account="Test Savings",
+			category="",
 		)
-		self.assertEqual(
-			dest.account_balance,
-			dest_initial + 200,
-			"Destination account balance should increase"
-		)
+		frappe.delete_doc("My Wallet", txn.name, force=True)
+		self.assertEqual(self._balance("Test Cash"), self.CASH_INITIAL)
+		self.assertEqual(self._balance("Test Savings"), self.SAVINGS_INITIAL)
 
-	def test_edit_expense_amount_updates_balance(self) -> None:
-		"""Test that editing an expense amount updates the balance correctly."""
-		account = frappe.get_doc("Wallet Account", "Test Cash")
-		initial_balance = account.account_balance
-		
-		# Create expense
-		expense = frappe.new_doc("My Wallet")
-		expense.type = "Expense"
-		expense.amount = 100
-		expense.category = "Food"
-		expense.account = "Test Cash"
-		expense.date = frappe.utils.today()
-		expense.time = frappe.utils.now_time()
-		expense.save()
-		
-		account.reload()
-		after_create = account.account_balance
-		self.assertEqual(after_create, initial_balance - 100)
-		
-		# Edit expense to 150
-		expense.amount = 150
-		expense.save()
-		
-		account.reload()
-		# Balance should be initial - 150 (not initial - 100 - 150)
-		self.assertEqual(
-			account.account_balance,
-			initial_balance - 150,
-			"Edited expense should update balance correctly"
-		)
+	# ── 4. Validation rules ───────────────────────────────────
 
-	def test_delete_transaction_reverses_balance(self) -> None:
-		"""Test that deleting a transaction reverses the balance change."""
-		account = frappe.get_doc("Wallet Account", "Test Cash")
-		initial_balance = account.account_balance
-		
-		# Create expense
-		expense = frappe.new_doc("My Wallet")
-		expense.type = "Expense"
-		expense.amount = 100
-		expense.category = "Food"
-		expense.account = "Test Cash"
-		expense.date = frappe.utils.today()
-		expense.time = frappe.utils.now_time()
-		expense.save()
-		expense_name = expense.name
-		
-		account.reload()
-		self.assertEqual(account.account_balance, initial_balance - 100)
-		
-		# Delete expense
-		frappe.delete_doc("My Wallet", expense_name)
-		
-		account.reload()
-		self.assertEqual(
-			account.account_balance,
-			initial_balance,
-			"Balance should revert to initial after deletion"
-		)
-
-	def test_delete_transfer_reverses_both_accounts(self) -> None:
-		"""Test that deleting a transfer reverses changes in both accounts."""
-		source = frappe.get_doc("Wallet Account", "Test Cash")
-		dest = frappe.get_doc("Wallet Account", "Test Savings")
-		
-		source_initial = source.account_balance
-		dest_initial = dest.account_balance
-		
-		# Create transfer
-		transfer = frappe.new_doc("My Wallet")
-		transfer.type = "Transfer"
-		transfer.amount = 200
-		transfer.account = "Test Cash"
-		transfer.to_account = "Test Savings"
-		transfer.date = frappe.utils.today()
-		transfer.time = frappe.utils.now_time()
-		transfer.save()
-		transfer_name = transfer.name
-		
-		# Delete transfer
-		frappe.delete_doc("My Wallet", transfer_name)
-		
-		source.reload()
-		dest.reload()
-		
-		self.assertEqual(source.account_balance, source_initial)
-		self.assertEqual(dest.account_balance, dest_initial)
-
-	def test_change_expense_type_to_income(self) -> None:
-		"""Test changing transaction type from Expense to Income."""
-		account = frappe.get_doc("Wallet Account", "Test Cash")
-		initial_balance = account.account_balance
-		
-		# Create expense
-		transaction = frappe.new_doc("My Wallet")
-		transaction.type = "Expense"
-		transaction.amount = 100
-		transaction.category = "Food"
-		transaction.account = "Test Cash"
-		transaction.date = frappe.utils.today()
-		transaction.time = frappe.utils.now_time()
-		transaction.save()
-		
-		account.reload()
-		self.assertEqual(account.account_balance, initial_balance - 100)
-		
-		# Change to income
-		transaction.type = "Income"
-		transaction.category = "Salary"
-		transaction.save()
-		
-		account.reload()
-		# Should be initial + 100 (reversed expense, added income)
-		self.assertEqual(account.account_balance, initial_balance + 100)
-
-	def test_negative_amount_validation_fails(self) -> None:
-		"""Test that negative amounts are rejected."""
-		expense = frappe.new_doc("My Wallet")
-		expense.type = "Expense"
-		expense.amount = -100
-		expense.category = "Food"
-		expense.account = "Test Cash"
-		expense.date = frappe.utils.today()
-		expense.time = frappe.utils.now_time()
-		
+	def test_negative_amount_rejected(self):
 		with self.assertRaises(ValidationError):
-			expense.save()
+			self._make_transaction(amount=-50)
 
-	def test_zero_amount_validation_fails(self) -> None:
-		"""Test that zero amounts are rejected."""
-		expense = frappe.new_doc("My Wallet")
-		expense.type = "Expense"
-		expense.amount = 0
-		expense.category = "Food"
-		expense.account = "Test Cash"
-		expense.date = frappe.utils.today()
-		expense.time = frappe.utils.now_time()
-		
+	def test_zero_amount_rejected(self):
 		with self.assertRaises(ValidationError):
-			expense.save()
+			self._make_transaction(amount=0)
 
-	def test_transfer_same_account_validation_fails(self) -> None:
-		"""Test that transferring to the same account is rejected."""
-		transfer = frappe.new_doc("My Wallet")
-		transfer.type = "Transfer"
-		transfer.amount = 100
-		transfer.account = "Test Cash"
-		transfer.to_account = "Test Cash"
-		transfer.date = frappe.utils.today()
-		transfer.time = frappe.utils.now_time()
-		
+	def test_expense_without_category_rejected(self):
 		with self.assertRaises(ValidationError):
-			transfer.save()
+			self._make_transaction(type="Expense", category="")
 
-	def test_missing_category_for_expense_fails(self) -> None:
-		"""Test that expense without category is rejected."""
-		expense = frappe.new_doc("My Wallet")
-		expense.type = "Expense"
-		expense.amount = 100
-		expense.account = "Test Cash"
-		expense.date = frappe.utils.today()
-		expense.time = frappe.utils.now_time()
-		
+	def test_income_without_category_rejected(self):
 		with self.assertRaises(ValidationError):
-			expense.save()
+			self._make_transaction(type="Income", category="", amount=100)
 
-	def test_missing_to_account_for_transfer_fails(self) -> None:
-		"""Test that transfer without to_account is rejected."""
-		transfer = frappe.new_doc("My Wallet")
-		transfer.type = "Transfer"
-		transfer.amount = 100
-		transfer.account = "Test Cash"
-		transfer.date = frappe.utils.today()
-		transfer.time = frappe.utils.now_time()
-		
+	def test_transfer_without_to_account_rejected(self):
 		with self.assertRaises(ValidationError):
-			transfer.save()
+			self._make_transaction(type="Transfer", category="", to_account="")
 
-	def test_transfer_does_not_require_category(self) -> None:
-		"""Test that transfer transactions do not require a category."""
-		transfer = frappe.new_doc("My Wallet")
-		transfer.type = "Transfer"
-		transfer.amount = 100
-		transfer.account = "Test Cash"
-		transfer.to_account = "Test Savings"
-		transfer.date = frappe.utils.today()
-		transfer.time = frappe.utils.now_time()
-		transfer.save()
-		
-		# Should save successfully without category
-		self.assertTrue(transfer.name)
+	def test_transfer_same_account_rejected(self):
+		with self.assertRaises(ValidationError):
+			self._make_transaction(
+				type="Transfer", category="",
+				account="Test Cash", to_account="Test Cash",
+			)
+
+	def test_transfer_does_not_require_category(self):
+		txn = self._make_transaction(
+			type="Transfer", amount=100,
+			account="Test Cash", to_account="Test Savings",
+			category="",
+		)
+		self.assertTrue(txn.name)
+
+	def test_wrong_category_type_rejected(self):
+		"""Using an Income category for an Expense transaction is rejected."""
+		with self.assertRaises(ValidationError):
+			self._make_transaction(type="Expense", category="Salary")
+
+	def test_wrong_category_type_income_rejected(self):
+		"""Using an Expense category for an Income transaction is rejected."""
+		with self.assertRaises(ValidationError):
+			self._make_transaction(type="Income", category="Food")
+
+	# ── 5. Deletion protection on linked records ──────────────
+
+	def test_cannot_delete_account_with_transactions(self):
+		"""A Wallet Account with linked transactions cannot be deleted."""
+		self._make_transaction(type="Expense", amount=50)
+		with self.assertRaises(ValidationError):
+			frappe.delete_doc("Wallet Account", "Test Cash", force=True)
+
+	def test_cannot_delete_category_with_transactions(self):
+		"""A Wallet Category with linked transactions cannot be deleted."""
+		self._make_transaction(type="Expense", amount=50, category="Food")
+		with self.assertRaises(ValidationError):
+			frappe.delete_doc("Wallet Category", "Food", force=True)
