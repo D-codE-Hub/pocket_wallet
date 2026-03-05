@@ -288,16 +288,16 @@
 
       <!-- ═══════════════ ADD TRANSACTION MODAL ═══════════════ -->
       <Transition name="modal">
-        <div v-if="form.show" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+        <div v-if="form.show" class="fixed inset-0 z-50 flex items-start sm:items-center justify-center pt-12 sm:pt-0">
           <div class="absolute inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-sm" @click="form.show = false"></div>
-          <div class="modal-content relative bg-white dark:bg-[#171b23] rounded-t-[20px] sm:rounded-[20px] shadow-2xl w-full sm:max-w-[440px] max-h-[90vh] overflow-y-auto">
+          <div class="modal-content modal-sheet relative bg-white dark:bg-[#171b23] rounded-[20px] sm:rounded-[20px] shadow-2xl w-[calc(100%-1.5rem)] sm:w-full sm:max-w-[440px] overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]">
 
             <!-- Drag handle (mobile) -->
-            <div class="sm:hidden flex justify-center pt-3 pb-1">
+            <div class="sm:hidden flex justify-center pt-3 pb-1 sticky top-0 bg-white dark:bg-[#171b23] z-10">
               <div class="w-8 h-1 rounded-full bg-gray-300 dark:bg-gray-700"></div>
             </div>
 
-            <div class="p-5 sm:p-6 space-y-5">
+            <div class="p-4 sm:p-6 space-y-4 sm:space-y-5">
               <!-- Header -->
               <div class="flex items-center justify-between">
                 <h3 class="text-[17px] font-semibold tracking-[-0.01em]">New Transaction</h3>
@@ -333,7 +333,7 @@
               </div>
 
               <!-- Account + Category -->
-              <div class="grid grid-cols-2 gap-3">
+              <div class="grid grid-cols-1 xs:grid-cols-2 gap-3">
                 <div>
                   <label class="form-label">Account</label>
                   <select v-model="form.account" class="form-input">
@@ -357,20 +357,20 @@
                 </div>
               </div>
 
-              <!-- Date + Note -->
-              <div class="grid grid-cols-5 gap-3">
-                <div class="col-span-2">
-                  <label class="form-label">Date</label>
-                  <input type="date" v-model="form.date" class="form-input" />
-                </div>
-                <div class="col-span-3">
-                  <label class="form-label">Note <span class="normal-case text-gray-300 dark:text-gray-600">(optional)</span></label>
-                  <input type="text" v-model="form.note" placeholder="What's this for?" @keyup.enter="createTransaction" class="form-input" />
-                </div>
+              <!-- Date -->
+              <div class="min-w-0">
+                <label class="form-label">Date</label>
+                <input type="date" v-model="form.date" class="form-input form-input-date" />
+              </div>
+
+              <!-- Note -->
+              <div>
+                <label class="form-label">Note <span class="normal-case text-gray-300 dark:text-gray-600">(optional)</span></label>
+                <input type="text" v-model="form.note" placeholder="What's this for?" @keyup.enter="createTransaction" class="form-input" />
               </div>
 
               <!-- Actions -->
-              <div class="flex gap-3 pt-1">
+              <div class="flex gap-3 pt-1 sticky bottom-0 bg-white dark:bg-[#171b23] pb-1">
                 <button @click="form.show = false" class="flex-1 h-11 rounded-xl text-[14px] font-medium border border-gray-200 dark:border-white/[0.08] text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/[0.04] transition-all">Cancel</button>
                 <button @click="createTransaction" :disabled="form.saving"
                   class="flex-[2] h-11 rounded-xl text-[14px] font-semibold text-white bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2">
@@ -484,6 +484,39 @@ export default {
       this.isDark = true;
     }
     await this.fetchAll();
+
+    // Scroll focused input into view when mobile keyboard opens (iOS compatible)
+    this._handleFocusIn = (e) => {
+      if (!this.form.show) return;
+      const el = e.target;
+      if (el.tagName === 'INPUT' || el.tagName === 'SELECT' || el.tagName === 'TEXTAREA') {
+        // Use longer delay for iOS keyboard animation
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 350);
+      }
+    };
+    document.addEventListener('focusin', this._handleFocusIn);
+
+    // iOS Visual Viewport resize handler — adjust modal when keyboard opens
+    if (window.visualViewport) {
+      this._handleViewportResize = () => {
+        if (!this.form.show) return;
+        const modalSheet = document.querySelector('.modal-sheet');
+        if (modalSheet) {
+          modalSheet.style.maxHeight = `${window.visualViewport.height}px`;
+        }
+      };
+      window.visualViewport.addEventListener('resize', this._handleViewportResize);
+    }
+  },
+  beforeUnmount() {
+    if (this._handleFocusIn) {
+      document.removeEventListener('focusin', this._handleFocusIn);
+    }
+    if (this._handleViewportResize && window.visualViewport) {
+      window.visualViewport.removeEventListener('resize', this._handleViewportResize);
+    }
   },
   methods: {
     toggleDark() {
@@ -846,6 +879,47 @@ export default {
 }
 .form-input {
   @apply w-full px-3 py-2.5 rounded-xl text-[13px] border border-gray-200 dark:border-white/[0.08] bg-gray-50 dark:bg-white/[0.04] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500/50 transition-all;
+  display: block;
+  min-width: 0;
+  box-sizing: border-box;
+}
+select.form-input {
+  @apply appearance-none cursor-pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 32px;
+}
+
+/* ── Date input (iOS fix) ── */
+.form-input-date {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  min-height: 44px; /* iOS tap target */
+  position: relative;
+  overflow: hidden;
+}
+.form-input-date::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+/* ── Modal sheet (mobile) ── */
+.modal-sheet {
+  max-height: 90vh;
+  max-height: 90dvh;
+  -webkit-overflow-scrolling: touch;
+}
+@supports (height: 100dvh) {
+  .modal-sheet {
+    max-height: 90dvh;
+  }
+}
+@media (max-width: 639px) {
+  .modal-sheet {
+    max-height: 95vh;
+    max-height: 95dvh;
+  }
 }
 
 /* ── Modal transitions ── */
