@@ -10,7 +10,7 @@ export default defineConfig({
 		vue(),
 		VitePWA({
 			registerType: 'autoUpdate',
-			includeAssets: ['icons/icon.svg', 'icons/apple-touch-icon.png'],
+			includeAssets: [],
 			manifest: {
 				name: 'Pocket Wallet',
 				short_name: 'PocketWallet',

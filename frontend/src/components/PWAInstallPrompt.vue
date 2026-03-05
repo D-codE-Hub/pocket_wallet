@@ -45,6 +45,7 @@ interface BeforeInstallPromptEvent extends Event {
 const showInstallPrompt = ref(false);
 const deferredPrompt = ref<BeforeInstallPromptEvent | null>(null);
 const isIOS = ref(false);
+let installPromptTimer: ReturnType<typeof setTimeout> | null = null;
 
 function isIOSDevice(): boolean {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
@@ -73,12 +74,9 @@ async function install() {
   if (!deferredPrompt.value) return;
 
   deferredPrompt.value.prompt();
-  const { outcome } = await deferredPrompt.value.userChoice;
+  await deferredPrompt.value.userChoice;
 
-  if (outcome === 'accepted') {
-    showInstallPrompt.value = false;
-  }
-
+  showInstallPrompt.value = false;
   deferredPrompt.value = null;
 }
 
@@ -97,7 +95,7 @@ onMounted(() => {
     const dismissedAt = localStorage.getItem('pwa-install-dismissed');
     if (!dismissedAt || Date.now() - parseInt(dismissedAt) > 7 * 24 * 60 * 60 * 1000) {
       // Show after a short delay for better UX
-      setTimeout(() => {
+      installPromptTimer = setTimeout(() => {
         showInstallPrompt.value = true;
       }, 3000);
     }
@@ -108,6 +106,10 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  if (installPromptTimer) {
+    clearTimeout(installPromptTimer);
+    installPromptTimer = null;
+  }
 });
 </script>
 

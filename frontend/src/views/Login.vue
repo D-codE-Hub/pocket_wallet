@@ -1,82 +1,48 @@
 <template>
   <div
     :class="{ dark: isDark }"
-    class="min-h-screen transition-colors duration-500"
+    class="min-h-screen transition-colors duration-300"
   >
     <div
-      class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-emerald-50 to-teal-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 px-4 transition-colors duration-500"
+      class="min-h-screen flex flex-col bg-[#f8fafb] dark:bg-[#0c0f14] transition-colors duration-300"
     >
-      <!-- Dark / Light toggle -->
-      <button
-        @click="toggleDark"
-        class="absolute top-5 right-5 p-2.5 rounded-full bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm shadow-sm border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all duration-300 hover:shadow-md"
-        aria-label="Toggle dark mode"
-      >
-        <!-- Sun icon (shown in dark mode) -->
-        <svg
-          v-if="isDark"
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M12 3v1m0 16v1m8.66-13.66l-.71.71M4.05 19.95l-.71.71M21 12h-1M4 12H3m16.95 7.95l-.71-.71M4.05 4.05l-.71-.71M16 12a4 4 0 11-8 0 4 4 0 018 0z"
-          />
-        </svg>
-        <!-- Moon icon (shown in light mode) -->
-        <svg
-          v-else
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M20.354 15.354A9 9 0 018.646 3.646 9.005 9.005 0 0012 21a9.005 9.005 0 008.354-5.646z"
-          />
-        </svg>
-      </button>
+      <!-- ═══════════════ NAVBAR ═══════════════ -->
+      <nav class="sticky top-0 z-40 bg-white/70 dark:bg-[#0c0f14]/70 backdrop-blur-2xl border-b border-gray-200/60 dark:border-white/[0.06] pt-[env(safe-area-inset-top)]">
+        <div class="max-w-6xl mx-auto px-5 sm:px-6 flex items-center justify-between h-14">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-[10px] bg-emerald-500 flex items-center justify-center">
+              <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+            </div>
+            <span class="text-[15px] font-semibold tracking-[-0.01em] text-gray-900 dark:text-gray-100">Pocket Wallet</span>
+          </div>
+          <button @click="toggleDark" class="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/[0.06] transition-all" aria-label="Toggle dark mode">
+            <svg v-if="isDark" class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m8.66-13.66l-.71.71M4.05 19.95l-.71.71M21 12h-1M4 12H3m16.95 7.95l-.71-.71M4.05 4.05l-.71-.71M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            <svg v-else class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.005 9.005 0 0012 21a9.005 9.005 0 008.354-5.646z"/></svg>
+          </button>
+        </div>
+      </nav>
+
+      <!-- ═══════════════ LOGIN CONTENT ═══════════════ -->
+      <div class="flex-1 flex items-center justify-center px-5 sm:px-6 py-8">
 
       <div class="w-full max-w-md">
         <!-- Card -->
         <div
-          class="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-3xl shadow-xl dark:shadow-2xl dark:shadow-emerald-900/10 border border-gray-100 dark:border-gray-800 p-8 sm:p-10 transition-colors duration-500"
+          class="bg-white dark:bg-white/[0.03] backdrop-blur-xl rounded-2xl border border-gray-200/60 dark:border-white/[0.06] p-7 sm:p-9 transition-colors duration-300"
         >
           <!-- Logo / Brand -->
           <div class="text-center mb-8">
             <div
-              class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 shadow-lg shadow-emerald-500/25 mb-4"
+              class="inline-flex items-center justify-center w-14 h-14 rounded-[14px] bg-emerald-500 mb-4"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-8 w-8 text-white"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                />
-              </svg>
+              <svg class="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
             </div>
             <h1
-              class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight"
+              class="text-xl font-semibold text-gray-900 dark:text-white tracking-[-0.01em]"
             >
-              Pocket Wallet
+              Welcome back
             </h1>
-            <p class="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
+            <p class="mt-1.5 text-[13px] text-gray-500 dark:text-gray-400">
               Sign in to manage your finances
             </p>
           </div>
@@ -138,7 +104,7 @@
                   v-model="email"
                   placeholder="you@example.com"
                   required
-                  class="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 dark:focus:ring-emerald-400/30 dark:focus:border-emerald-400 transition-all duration-200 text-sm"
+                  class="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.04] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all duration-200 text-sm"
                 />
               </div>
             </div>
@@ -176,7 +142,7 @@
                   v-model="password"
                   placeholder="Enter your password"
                   required
-                  class="w-full pl-11 pr-11 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 dark:focus:ring-emerald-400/30 dark:focus:border-emerald-400 transition-all duration-200 text-sm"
+                  class="w-full pl-11 pr-11 py-3 rounded-xl border border-gray-200/60 dark:border-white/[0.08] bg-white dark:bg-white/[0.04] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500 transition-all duration-200 text-sm"
                 />
                 <button
                   type="button"
@@ -228,7 +194,7 @@
             <button
               type="submit"
               :disabled="loading"
-              class="w-full py-3 px-4 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2"
+              class="w-full py-3 px-4 rounded-xl text-sm font-semibold text-white bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
             >
               <svg
                 v-if="loading"
@@ -258,11 +224,12 @@
 
         <!-- Footer -->
         <p
-          class="mt-6 text-center text-xs text-gray-400 dark:text-gray-600"
+          class="mt-6 text-center text-xs text-gray-400 dark:text-gray-500"
         >
           &copy; {{ new Date().getFullYear() }} Pocket Wallet &middot;
           Manage your money, your way.
         </p>
+      </div>
       </div>
     </div>
   </div>
@@ -308,7 +275,12 @@ export default {
       try {
         let res = await this.$auth.login(this.email, this.password);
         if (res) {
-          this.$router.push({ name: "Home" });
+          if (this.redirect_route) {
+            this.$router.replace(this.redirect_route);
+            this.redirect_route = null;
+          } else {
+            this.$router.push({ name: "Home" });
+          }
         }
       } catch (err) {
         this.errorMessage =

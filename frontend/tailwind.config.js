@@ -3,6 +3,14 @@ export default {
   darkMode: "class",
   content: ["./src/**/*.{html,jsx,tsx,vue,js,ts}"],
   theme: {
+    screens: {
+      'xs': '375px',
+      'sm': '640px',
+      'md': '768px',
+      'lg': '1024px',
+      'xl': '1280px',
+      '2xl': '1536px',
+    },
     extend: {
       colors: {
         emerald: {

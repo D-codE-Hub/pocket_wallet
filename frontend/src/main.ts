@@ -36,22 +36,17 @@ app.provide("$call", call);
 app.provide("$socket", socket);
 
 
-// Configure route gaurds
+// Configure route guards
 router.beforeEach(async (to, from, next) => {
-	if (to.matched.some((record) => !record.meta.isLoginPage)) {
-		// this route requires auth, check if logged in
-		// if not, redirect to login page.
-		if (!auth.isLoggedIn) {
-			next({ name: 'Login', query: { route: to.path } });
-		} else {
-			next();
-		}
+	const requiresAuth = to.matched.some((record) => record.meta?.requiresAuth);
+	const isLoginPage = to.matched.some((record) => record.meta?.isLoginPage);
+
+	if (requiresAuth && !auth.isLoggedIn) {
+		next({ name: 'Login', query: { route: to.path } });
+	} else if (isLoginPage && auth.isLoggedIn) {
+		next({ name: 'Home' });
 	} else {
-		if (auth.isLoggedIn) {
-			next({ name: 'Home' });
-		} else {
-			next();
-		}
+		next();
 	}
 });
 
