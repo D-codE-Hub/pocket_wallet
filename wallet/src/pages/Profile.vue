@@ -7,6 +7,7 @@ import Icon from "@/components/ui/Icon.vue";
 import SettingsItem from "@/components/ui/SettingsItem.vue";
 import NotificationCard from "@/components/cards/NotificationCard.vue";
 import BottomSheet from "@/components/ui/BottomSheet.vue";
+import WalletManagerSheet from "@/components/WalletManagerSheet.vue";
 import EmptyState from "@/components/ui/EmptyState.vue";
 import { useWalletStore } from "@/stores/useWalletStore";
 import { useUiStore } from "@/stores/useUiStore";
@@ -29,6 +30,7 @@ const initials = computed(() =>
 
 const notifOpen = ref(false);
 const currencyOpen = ref(false);
+const walletMgrOpen = ref(false);
 const currencies = ["USD", "EUR", "GBP", "INR", "AED"];
 
 function toast(label: string) {
@@ -38,7 +40,7 @@ function toast(label: string) {
 
 const account = [
   { icon: "user", label: "Account settings", tint: "#3b82f6", action: () => toast("Account settings") },
-  { icon: "wallet", label: "Wallet management", tint: "#8b5cf6", action: () => toast("Wallet management") },
+  { icon: "wallet", label: "Wallet management", tint: "#8b5cf6", action: () => (walletMgrOpen.value = true) },
   { icon: "box", label: "Categories", tint: "#f97316", action: () => toast("Categories") },
   { icon: "credit-card", label: "Payment methods", tint: "#10b981", action: () => toast("Payment methods") },
 ];
@@ -177,6 +179,9 @@ const prefs = [
         />
       </div>
     </BottomSheet>
+
+    <!-- Wallet management + sharing -->
+    <WalletManagerSheet :open="walletMgrOpen" @close="walletMgrOpen = false" />
 
     <!-- Currency picker -->
     <BottomSheet :open="currencyOpen" title="Currency" @close="currencyOpen = false">

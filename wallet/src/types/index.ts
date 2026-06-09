@@ -28,6 +28,19 @@ export interface Wallet {
   balance: number;
   color: string;
   icon: string;
+  /** User id that owns this wallet (creator). */
+  owner?: string;
+}
+
+export interface WalletShares {
+  wallet: string;
+  owner: string;
+  shared_with: string[];
+}
+
+export interface ShareableUser {
+  name: string;
+  full_name: string;
 }
 
 export interface Transaction {

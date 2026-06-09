@@ -97,8 +97,12 @@ watch(
   () => ui.addSheetOpen,
   (open) => {
     if (!open) return;
-    if (ui.editingTransaction) prefillFrom(ui.editingTransaction);
-    else resetForm();
+    if (ui.editingTransaction) {
+      prefillFrom(ui.editingTransaction);
+    } else {
+      resetForm();
+      if (ui.addPresetType) form.type = ui.addPresetType;
+    }
   },
 );
 
@@ -223,13 +227,13 @@ async function save() {
 
     <!-- Date + payment method -->
     <div class="mb-5 grid grid-cols-2 gap-3">
-      <div>
+      <div class="min-w-0">
         <p class="mb-1.5 text-sm font-semibold">Date</p>
-        <input v-model="form.date" type="date" class="pw-input" />
+        <input v-model="form.date" type="date" class="pw-input appearance-none" />
       </div>
-      <div v-if="form.type !== 'transfer'">
+      <div v-if="form.type !== 'transfer'" class="min-w-0">
         <p class="mb-1.5 text-sm font-semibold">Payment</p>
-        <select v-model="form.paymentMethod" class="pw-input">
+        <select v-model="form.paymentMethod" class="pw-input appearance-none">
           <option v-for="m in methods" :key="m.key" :value="m.key">{{ m.label }}</option>
         </select>
       </div>

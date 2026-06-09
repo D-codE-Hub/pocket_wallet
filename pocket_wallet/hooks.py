@@ -103,13 +103,15 @@ after_migrate = "pocket_wallet.setup.install.after_migrate"
 # -----------
 # Permissions evaluated in scripted ways
 
-# permission_query_conditions = {
-# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
-# }
-#
-# has_permission = {
-# 	"Event": "frappe.desk.doctype.event.event.has_permission",
-# }
+permission_query_conditions = {
+	"Wallet Account": "pocket_wallet.permissions.wallet_account_query",
+	"My Wallet": "pocket_wallet.permissions.my_wallet_query",
+}
+
+has_permission = {
+	"Wallet Account": "pocket_wallet.permissions.wallet_account_has_permission",
+	"My Wallet": "pocket_wallet.permissions.my_wallet_has_permission",
+}
 
 # DocType Class
 # ---------------

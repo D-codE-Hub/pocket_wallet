@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:account_name",
+ "autoname": "format:WALLET-{#####}",
  "creation": "2024-10-28 13:07:51.621362",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -14,7 +14,9 @@
   "color",
   "column_break_rtti",
   "account_balance",
-  "edit_account_balance"
+  "edit_account_balance",
+  "sharing_section",
+  "shared_with"
  ],
  "fields": [
   {
@@ -22,8 +24,7 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Account Name",
-   "reqd": 1,
-   "unique": 1
+   "reqd": 1
   },
   {
    "default": "Cash",
@@ -72,6 +73,19 @@
   {
    "fieldname": "column_break_rtti",
    "fieldtype": "Column Break"
+  },
+  {
+   "collapsible": 1,
+   "description": "Users this wallet is shared with. They can view and add transactions on it.",
+   "fieldname": "sharing_section",
+   "fieldtype": "Section Break",
+   "label": "Sharing"
+  },
+  {
+   "fieldname": "shared_with",
+   "fieldtype": "Table",
+   "label": "Shared With",
+   "options": "Wallet Account User"
   }
  ],
  "index_web_pages_for_search": 1,
@@ -80,7 +94,7 @@
  "modified_by": "Administrator",
  "module": "Pocket Wallet",
  "name": "Wallet Account",
- "naming_rule": "By fieldname",
+ "naming_rule": "Expression (old style)",
  "owner": "Administrator",
  "permissions": [
   {
@@ -112,7 +126,6 @@
    "delete": 1,
    "email": 1,
    "export": 1,
-   "if_owner": 1,
    "print": 1,
    "read": 1,
    "report": 1,

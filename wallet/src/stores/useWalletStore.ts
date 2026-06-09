@@ -157,6 +157,8 @@ export const useWalletStore = defineStore("wallet", {
   actions: {
     async loadAll() {
       if (this.loaded) return;
+      // Per-user first-run setup (default wallets) before anything is fetched.
+      await walletService.bootstrap();
       // Static-ish data first.
       this.categories = await walletService.getCategories();
       this.profile = await walletService.getProfile();

@@ -50,12 +50,10 @@ DEFAULT_WALLETS = [
 
 def after_install():
 	create_default_categories()
-	create_default_wallets()
 
 
 def after_migrate():
 	create_default_categories()
-	create_default_wallets()
 
 
 def create_default_categories():
@@ -74,10 +72,19 @@ def create_default_categories():
 		).insert(ignore_permissions=True)
 
 
-def create_default_wallets():
+def ensure_user_wallets(user: str):
+	"""Provision the default wallets for a user the first time they use the app.
+
+	Wallets are per-user (owned by their creator), so this runs in the user's own
+	session — the inserted docs take `owner = user` automatically. No-ops if the
+	user already owns any wallet.
+	"""
+	if user in ("Guest", "Administrator"):
+		return
+	if frappe.db.exists("Wallet Account", {"owner": user}):
+		return
+
 	for name, wtype, icon, color in DEFAULT_WALLETS:
-		if frappe.db.exists("Wallet Account", name):
-			continue
 		frappe.get_doc(
 			{
 				"doctype": "Wallet Account",
@@ -88,3 +95,4 @@ def create_default_wallets():
 				"account_balance": 0,
 			}
 		).insert(ignore_permissions=True)
+	frappe.db.commit()

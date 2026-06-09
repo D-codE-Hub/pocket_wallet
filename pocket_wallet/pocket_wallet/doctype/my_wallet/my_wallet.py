@@ -13,6 +13,19 @@ class MyWallet(Document):
 		self._validate_amount()
 		self._validate_category()
 		self._validate_transfer()
+		self._validate_wallet_access()
+
+	def _validate_wallet_access(self):
+		"""Block posting into a wallet the current user can't access (own/shared)."""
+		from pocket_wallet.permissions import can_access_wallet, has_full_access
+
+		user = frappe.session.user
+		if has_full_access(user):
+			return
+		if not can_access_wallet(self.account, user):
+			frappe.throw(f"You don't have access to the wallet '{self.account}'")
+		if self.to_account and not can_access_wallet(self.to_account, user):
+			frappe.throw(f"You don't have access to the wallet '{self.to_account}'")
 
 	def on_update(self):
 		"""Update account balances after the document is saved."""

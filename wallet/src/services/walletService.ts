@@ -6,10 +6,12 @@ import type {
   Budget,
   Category,
   PaymentMethod,
+  ShareableUser,
   Transaction,
   TransactionType,
   UserProfile,
   Wallet,
+  WalletShares,
   WalletType,
 } from "@/types";
 
@@ -52,6 +54,7 @@ function toWallet(d: any): Wallet {
     balance: d.account_balance ?? 0,
     color: d.color || "#10b981",
     icon: d.icon || "wallet",
+    owner: d.owner,
   };
 }
 
@@ -129,6 +132,7 @@ export const walletService = {
       "account_balance",
       "color",
       "icon",
+      "owner",
     ]);
     return rows.map(toWallet);
   },
@@ -243,7 +247,25 @@ export const walletService = {
     return call("frappe.client.delete", { doctype: "Wallet Budget", name: id });
   },
 
+  // --- wallet sharing -------------------------------------------------------
+  getWalletShares(wallet: string): Promise<WalletShares> {
+    return call("pocket_wallet.api.get_wallet_shares", { wallet });
+  },
+  shareWallet(wallet: string, user: string): Promise<WalletShares> {
+    return call("pocket_wallet.api.share_wallet", { wallet, user });
+  },
+  unshareWallet(wallet: string, user: string): Promise<WalletShares> {
+    return call("pocket_wallet.api.unshare_wallet", { wallet, user });
+  },
+  getShareableUsers(txt = ""): Promise<ShareableUser[]> {
+    return call("pocket_wallet.api.get_shareable_users", { txt });
+  },
+
   // --- auth -----------------------------------------------------------------
+  /** First-run per-user setup (ensures default wallets exist). */
+  bootstrap(): Promise<{ ok: boolean }> {
+    return call("pocket_wallet.api.bootstrap");
+  },
   getSession(): Promise<any> {
     return call("pocket_wallet.api.get_session");
   },

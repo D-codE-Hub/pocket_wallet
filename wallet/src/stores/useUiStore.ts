@@ -1,6 +1,6 @@
 // UI / preferences store: theme, currency and the global Add-Transaction sheet.
 import { defineStore } from "pinia";
-import type { Transaction } from "@/types";
+import type { Transaction, TransactionType } from "@/types";
 
 type Theme = "light" | "dark";
 
@@ -10,6 +10,8 @@ interface UiState {
   addSheetOpen: boolean;
   // When set, the Add sheet opens in "edit" mode for this transaction.
   editingTransaction: Transaction | null;
+  // Preselected type for a fresh Add sheet (from Quick Actions); null = default.
+  addPresetType: TransactionType | null;
 }
 
 const THEME_KEY = "pw-theme";
@@ -30,6 +32,7 @@ export const useUiStore = defineStore("ui", {
     currency: localStorage.getItem(CURRENCY_KEY) ?? "USD",
     addSheetOpen: false,
     editingTransaction: null,
+    addPresetType: null,
   }),
 
   getters: {
@@ -58,8 +61,9 @@ export const useUiStore = defineStore("ui", {
       this.currency = code;
       localStorage.setItem(CURRENCY_KEY, code);
     },
-    openAddSheet() {
+    openAddSheet(presetType: TransactionType | null = null) {
       this.editingTransaction = null;
+      this.addPresetType = presetType;
       this.addSheetOpen = true;
     },
     openEditSheet(tx: Transaction) {

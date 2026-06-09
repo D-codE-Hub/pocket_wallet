@@ -14,7 +14,7 @@ import SkeletonLoader from "@/components/ui/SkeletonLoader.vue";
 import { useWalletStore } from "@/stores/useWalletStore";
 import { useUiStore } from "@/stores/useUiStore";
 import { useFormat, greeting } from "@/composables/useFormat";
-import type { Transaction } from "@/types";
+import type { Transaction, TransactionType } from "@/types";
 
 const store = useWalletStore();
 const ui = useUiStore();
@@ -30,15 +30,15 @@ const donutData = computed(() =>
 );
 
 const quickActions = [
-  { label: "Add Income", icon: "arrow-down", tint: "#10b981" },
-  { label: "Add Expense", icon: "arrow-up", tint: "#ef4444" },
-  { label: "Transfer", icon: "transfer", tint: "#3b82f6" },
-  { label: "Budgets", icon: "wallet", tint: "#8b5cf6" },
+  { label: "Add Income", icon: "arrow-down", tint: "#10b981", type: "income" as TransactionType | null },
+  { label: "Add Expense", icon: "arrow-up", tint: "#ef4444", type: "expense" as TransactionType | null },
+  { label: "Transfer", icon: "transfer", tint: "#3b82f6", type: "transfer" as TransactionType | null },
+  { label: "Budgets", icon: "wallet", tint: "#8b5cf6", type: null },
 ];
 
-function onQuickAction(label: string) {
-  if (label === "Budgets") router.push("/budget");
-  else ui.openAddSheet();
+function onQuickAction(a: { type: TransactionType | null }) {
+  if (a.type === null) router.push("/budget");
+  else ui.openAddSheet(a.type);
 }
 
 function remove(tx: Transaction) {
@@ -142,7 +142,7 @@ function remove(tx: Transaction) {
             v-for="a in quickActions"
             :key="a.label"
             class="tap flex flex-col items-center gap-2 rounded-2xl bg-white p-3 shadow-soft ring-1 ring-slate-100 dark:bg-ink-800 dark:ring-white/5"
-            @click="onQuickAction(a.label)"
+            @click="onQuickAction(a)"
           >
             <span
               class="flex h-11 w-11 items-center justify-center rounded-2xl"
