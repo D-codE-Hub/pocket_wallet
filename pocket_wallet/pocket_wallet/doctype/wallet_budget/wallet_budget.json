@@ -1,68 +1,53 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:category",
- "creation": "2024-10-28 13:13:00.647592",
+ "autoname": "format:BUDGET-{category}-{period}",
+ "creation": "2026-06-09 00:00:00.000000",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "category",
-  "emoji",
-  "column_break_cghe",
-  "category_type",
-  "column_break_mpcf",
-  "icon",
-  "color"
+  "amount",
+  "column_break_main",
+  "period"
  ],
  "fields": [
   {
    "fieldname": "category",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Category",
-   "reqd": 1,
-   "unique": 1
-  },
-  {
-   "fieldname": "emoji",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Emoji"
-  },
-  {
-   "fieldname": "category_type",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Category Type",
-   "options": "Expense\nIncome",
+   "options": "Wallet Category",
    "reqd": 1
   },
   {
-   "fieldname": "icon",
-   "fieldtype": "Icon",
-   "label": "Icon"
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Budget Amount",
+   "reqd": 1
   },
   {
-   "fieldname": "color",
-   "fieldtype": "Color",
-   "label": "Color"
+   "default": "Monthly",
+   "fieldname": "period",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Period",
+   "options": "Monthly",
+   "reqd": 1
   },
   {
-   "fieldname": "column_break_cghe",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "column_break_mpcf",
+   "fieldname": "column_break_main",
    "fieldtype": "Column Break"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-04 16:08:18.962618",
+ "modified": "2026-06-09 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Pocket Wallet",
- "name": "Wallet Category",
- "naming_rule": "By fieldname",
+ "name": "Wallet Budget",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {
@@ -91,8 +76,10 @@
   },
   {
    "create": 1,
+   "delete": 1,
    "email": 1,
    "export": 1,
+   "if_owner": 1,
    "print": 1,
    "read": 1,
    "report": 1,
@@ -104,5 +91,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }

@@ -1,12 +1,18 @@
 <script setup lang="ts">
-// App shell: centered phone-width column, scrollable page area with animated
-// route transitions, fixed bottom nav, FAB, and the global Add sheet.
+// App shell for the authenticated screens: centered phone-width column,
+// animated route transitions, fixed bottom nav, FAB, and the global Add sheet.
+// Triggers the initial data load once mounted (i.e. once authenticated).
+import { onMounted } from "vue";
 import { useRoute } from "vue-router";
 import BottomNavigation from "@/components/ui/BottomNavigation.vue";
 import FloatingActionButton from "@/components/ui/FloatingActionButton.vue";
 import AddTransactionSheet from "@/components/AddTransactionSheet.vue";
+import { useWalletStore } from "@/stores/useWalletStore";
 
 const route = useRoute();
+const store = useWalletStore();
+
+onMounted(() => store.loadAll());
 </script>
 
 <template>

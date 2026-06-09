@@ -10,10 +10,12 @@ import BottomSheet from "@/components/ui/BottomSheet.vue";
 import EmptyState from "@/components/ui/EmptyState.vue";
 import { useWalletStore } from "@/stores/useWalletStore";
 import { useUiStore } from "@/stores/useUiStore";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { useFormat } from "@/composables/useFormat";
 
 const store = useWalletStore();
 const ui = useUiStore();
+const auth = useAuthStore();
 const { formatMoney } = useFormat();
 
 const initials = computed(() =>
@@ -150,7 +152,7 @@ const prefs = [
 
       <button
         class="tap flex w-full items-center justify-center gap-2 rounded-2xl bg-red-500/10 py-3.5 text-sm font-bold text-red-500"
-        @click="toast('Sign out')"
+        @click="auth.logout()"
       >
         <Icon name="log-out" :size="18" /> Sign out
       </button>

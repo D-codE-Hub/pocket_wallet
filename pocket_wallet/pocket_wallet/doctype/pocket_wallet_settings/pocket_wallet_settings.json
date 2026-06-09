@@ -6,7 +6,8 @@
  "engine": "InnoDB",
  "field_order": [
   "default_category",
-  "default_account"
+  "default_account",
+  "default_currency"
  ],
  "fields": [
   {
@@ -20,6 +21,13 @@
    "fieldtype": "Link",
    "label": "Default Account",
    "options": "Wallet Account"
+  },
+  {
+   "default": "USD",
+   "fieldname": "default_currency",
+   "fieldtype": "Link",
+   "label": "Default Currency",
+   "options": "Currency"
   }
  ],
  "index_web_pages_for_search": 1,

@@ -7,8 +7,11 @@
  "engine": "InnoDB",
  "field_order": [
   "account_name",
+  "wallet_type",
   "column_break_djhw",
   "account_type",
+  "icon",
+  "color",
   "column_break_rtti",
   "account_balance",
   "edit_account_balance"
@@ -23,9 +26,30 @@
    "unique": 1
   },
   {
+   "default": "Cash",
+   "fieldname": "wallet_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Wallet Type",
+   "options": "Cash\nBank Account\nCredit Card\nE-Wallet"
+  },
+  {
    "fieldname": "account_type",
    "fieldtype": "Data",
    "label": "Account Type"
+  },
+  {
+   "default": "#10b981",
+   "fieldname": "color",
+   "fieldtype": "Color",
+   "label": "Color"
+  },
+  {
+   "default": "wallet",
+   "description": "Icon key used by the Pocket Wallet frontend (e.g. wallet, bank, card, smartphone).",
+   "fieldname": "icon",
+   "fieldtype": "Data",
+   "label": "Icon"
   },
   {
    "default": "0",

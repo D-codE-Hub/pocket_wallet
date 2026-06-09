@@ -16,6 +16,20 @@ export function useFormat() {
 
   const currency = computed(() => ui.currency);
 
+  // The locale-appropriate symbol for the active currency (e.g. ₹, $, €).
+  const currencySymbol = computed(() => {
+    const locale = CURRENCY_LOCALE[currency.value] ?? "en-US";
+    try {
+      const parts = new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency: currency.value,
+      }).formatToParts(0);
+      return parts.find((p) => p.type === "currency")?.value ?? currency.value;
+    } catch {
+      return currency.value;
+    }
+  });
+
   function formatMoney(value: number, opts: { sign?: boolean } = {}): string {
     const locale = CURRENCY_LOCALE[currency.value] ?? "en-US";
     const formatted = new Intl.NumberFormat(locale, {
@@ -39,7 +53,7 @@ export function useFormat() {
     }).format(value);
   }
 
-  return { currency, formatMoney, formatCompact };
+  return { currency, currencySymbol, formatMoney, formatCompact };
 }
 
 // --- Date helpers (no store dependency, safe to import anywhere) -------------

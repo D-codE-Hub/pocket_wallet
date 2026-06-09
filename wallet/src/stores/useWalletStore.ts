@@ -1,6 +1,6 @@
-// Core data store: wallets, categories, transactions, budgets, notifications,
-// plus the derived totals every screen depends on. Talks only to walletService
-// (the mock API), so swapping in real endpoints touches nothing here.
+// Core data store: wallets, categories, transactions, budgets, plus the derived
+// totals and (client-derived) notifications every screen depends on. Talks only
+// to walletService, which calls the Frappe backend.
 import { defineStore } from "pinia";
 import { walletService } from "@/services/walletService";
 import type {
@@ -9,15 +9,15 @@ import type {
   Category,
   Transaction,
   UserProfile,
+  Wallet,
 } from "@/types";
-import type { Wallet } from "@/types";
 
 interface State {
   wallets: Wallet[];
   categories: Category[];
   transactions: Transaction[];
   budgets: Budget[];
-  notifications: AppNotification[];
+  readNotificationIds: string[];
   profile: UserProfile | null;
   loading: {
     wallets: boolean;
@@ -39,7 +39,7 @@ export const useWalletStore = defineStore("wallet", {
     categories: [],
     transactions: [],
     budgets: [],
-    notifications: [],
+    readNotificationIds: [],
     profile: null,
     loading: { wallets: true, transactions: true, budgets: true },
     loaded: false,
@@ -79,10 +79,6 @@ export const useWalletStore = defineStore("wallet", {
         .slice(0, 5);
     },
 
-    unreadNotifications(state): number {
-      return state.notifications.filter((n) => !n.read).length;
-    },
-
     /** This month's expense grouped by category, for the donut + analytics. */
     expenseByCategory(state): { category: Category; total: number }[] {
       const totals: Record<string, number> = {};
@@ -94,7 +90,7 @@ export const useWalletStore = defineStore("wallet", {
         .map(([id, total]) => ({
           category:
             state.categories.find((c) => c.id === id) ??
-            ({ id, name: "Others", emoji: "📦", icon: "box", color: "#64748b", kind: "expense" } as Category),
+            ({ id, name: id, emoji: "📦", icon: "box", color: "#64748b", kind: "expense" } as Category),
           total,
         }))
         .sort((a, b) => b.total - a.total);
@@ -111,25 +107,68 @@ export const useWalletStore = defineStore("wallet", {
         return { ...b, spent };
       });
     },
+
+    /** Notifications derived from budget status + savings (no backend store). */
+    notifications(): AppNotification[] {
+      const now = new Date().toISOString();
+      const list: AppNotification[] = [];
+      for (const b of this.budgetsWithSpend) {
+        const cat = this.categoryMap[b.categoryId];
+        if (!cat || !b.amount) continue;
+        const pct = Math.round((b.spent / b.amount) * 100);
+        if (b.spent > b.amount) {
+          list.push({
+            id: `budget-over-${b.id}`,
+            kind: "budget",
+            title: "Budget exceeded",
+            message: `You've gone over your ${cat.name} budget (${pct}%).`,
+            date: now,
+            read: this.readNotificationIds.includes(`budget-over-${b.id}`),
+          });
+        } else if (pct >= 80) {
+          list.push({
+            id: `budget-near-${b.id}`,
+            kind: "budget",
+            title: "Budget alert",
+            message: `You've used ${pct}% of your ${cat.name} budget.`,
+            date: now,
+            read: this.readNotificationIds.includes(`budget-near-${b.id}`),
+          });
+        }
+      }
+      if (this.monthlySavings > 0) {
+        list.push({
+          id: "milestone-savings",
+          kind: "milestone",
+          title: "Savings milestone 🎉",
+          message: "You're saving money this month. Keep it up!",
+          date: now,
+          read: this.readNotificationIds.includes("milestone-savings"),
+        });
+      }
+      return list;
+    },
+
+    unreadNotifications(): number {
+      return this.notifications.filter((n) => !n.read).length;
+    },
   },
 
   actions: {
     async loadAll() {
       if (this.loaded) return;
-      // Fast static data first.
+      // Static-ish data first.
       this.categories = await walletService.getCategories();
       this.profile = await walletService.getProfile();
 
-      const [wallets, transactions, budgets, notifications] = await Promise.all([
+      const [wallets, transactions, budgets] = await Promise.all([
         walletService.getWallets().finally(() => (this.loading.wallets = false)),
         walletService.getTransactions().finally(() => (this.loading.transactions = false)),
         walletService.getBudgets().finally(() => (this.loading.budgets = false)),
-        walletService.getNotifications(),
       ]);
       this.wallets = wallets;
       this.transactions = transactions;
       this.budgets = budgets;
-      this.notifications = notifications;
       this.loaded = true;
     },
 
@@ -145,6 +184,7 @@ export const useWalletStore = defineStore("wallet", {
     async addTransaction(input: Omit<Transaction, "id">) {
       const tx = await walletService.addTransaction(input);
       this.transactions = [tx, ...this.transactions];
+      // Backend updated wallet balances as a side-effect — pull the new values.
       this.wallets = await walletService.getWallets();
       return tx;
     },
@@ -165,10 +205,8 @@ export const useWalletStore = defineStore("wallet", {
       this.budgets = this.budgets.filter((b) => b.id !== id);
     },
 
-    async markNotificationRead(id: string) {
-      await walletService.markNotificationRead(id);
-      const n = this.notifications.find((x) => x.id === id);
-      if (n) n.read = true;
+    markNotificationRead(id: string) {
+      if (!this.readNotificationIds.includes(id)) this.readNotificationIds.push(id);
     },
   },
 });

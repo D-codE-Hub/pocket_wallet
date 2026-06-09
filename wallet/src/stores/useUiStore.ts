@@ -11,6 +11,9 @@ interface UiState {
 
 const THEME_KEY = "pw-theme";
 const CURRENCY_KEY = "pw-currency";
+// Set once the user picks a currency manually, so the backend default never
+// overrides their explicit choice on subsequent loads.
+const CURRENCY_EXPLICIT_KEY = "pw-currency-explicit";
 
 function initialTheme(): Theme {
   const saved = localStorage.getItem(THEME_KEY);
@@ -39,7 +42,15 @@ export const useUiStore = defineStore("ui", {
       this.theme = this.theme === "dark" ? "light" : "dark";
       this.applyTheme();
     },
+    /** User picked a currency in the UI — remember it as an explicit choice. */
     setCurrency(code: string) {
+      this.currency = code;
+      localStorage.setItem(CURRENCY_KEY, code);
+      localStorage.setItem(CURRENCY_EXPLICIT_KEY, "1");
+    },
+    /** Apply the backend's default currency unless the user has chosen one. */
+    applyDefaultCurrency(code?: string) {
+      if (!code || localStorage.getItem(CURRENCY_EXPLICIT_KEY)) return;
       this.currency = code;
       localStorage.setItem(CURRENCY_KEY, code);
     },

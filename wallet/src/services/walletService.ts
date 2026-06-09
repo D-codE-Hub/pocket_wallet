@@ -1,111 +1,226 @@
-// Mock API layer. Every method returns a Promise with a small artificial delay
-// so the UI exercises its real loading/skeleton states. Swap the bodies for
-// `call('/api/method/...')` against the Frappe backend when going live — the
-// signatures are designed to map cleanly onto My Wallet / Wallet Account.
+// Backend API layer. Talks to Frappe over the shared `call` transport using the
+// generic `frappe.client.*` RPCs plus a couple of `pocket_wallet.api` helpers,
+// and maps between Frappe DocType payloads and the frontend domain types.
+import call from "@/lib/frappe/call";
 import type {
-  AppNotification,
   Budget,
   Category,
+  PaymentMethod,
   Transaction,
+  TransactionType,
   UserProfile,
   Wallet,
+  WalletType,
 } from "@/types";
-import * as seed from "./mockData";
 
-// In-memory clones so mutations during a session don't touch the seed module.
-let _wallets = clone(seed.wallets);
-let _transactions = clone(seed.transactions);
-let _budgets = clone(seed.budgets);
-let _notifications = clone(seed.notifications);
+// --- enum maps (frontend <-> Frappe Select options) -------------------------
+const WALLET_TYPE_FROM: Record<string, WalletType> = {
+  Cash: "cash",
+  "Bank Account": "bank",
+  "Credit Card": "credit",
+  "E-Wallet": "ewallet",
+};
+const TYPE_TO: Record<TransactionType, string> = {
+  income: "Income",
+  expense: "Expense",
+  transfer: "Transfer",
+};
+const PAYMENT_TO: Record<PaymentMethod, string> = {
+  cash: "Cash",
+  card: "Card",
+  upi: "UPI",
+  bank: "Bank",
+  wallet: "Wallet",
+};
 
-function clone<T>(v: T): T {
-  return JSON.parse(JSON.stringify(v));
+// --- generic frappe.client helpers ------------------------------------------
+function getList<T = any>(doctype: string, fields: string[], extra: Record<string, any> = {}): Promise<T[]> {
+  return call<T[]>("frappe.client.get_list", {
+    doctype,
+    fields,
+    limit_page_length: 0, // 0 = all (personal-scale data)
+    ...extra,
+  });
 }
 
-function delay<T>(value: T, ms = 450): Promise<T> {
-  return new Promise((resolve) => setTimeout(() => resolve(value), ms));
+// --- mappers ----------------------------------------------------------------
+function toWallet(d: any): Wallet {
+  return {
+    id: d.name,
+    name: d.account_name ?? d.name,
+    type: WALLET_TYPE_FROM[d.wallet_type] ?? "cash",
+    balance: d.account_balance ?? 0,
+    color: d.color || "#10b981",
+    icon: d.icon || "wallet",
+  };
 }
 
-function uid(prefix: string): string {
-  return `${prefix}${Date.now().toString(36)}${Math.floor(Math.random() * 1e4)}`;
+function toCategory(d: any): Category {
+  return {
+    id: d.name,
+    name: d.category ?? d.name,
+    emoji: d.emoji || "📦",
+    icon: d.icon || "box",
+    color: d.color || "#64748b",
+    kind: (d.category_type || "Expense").toLowerCase() === "income" ? "income" : "expense",
+  };
+}
+
+function toTransaction(d: any): Transaction {
+  const time = d.time ? String(d.time) : "00:00:00";
+  return {
+    id: d.name,
+    type: (d.type || "Expense").toLowerCase() as TransactionType,
+    amount: d.amount ?? 0,
+    categoryId: d.category || null,
+    walletId: d.account,
+    toWalletId: d.to_account || null,
+    date: new Date(`${d.date}T${time}`).toISOString(),
+    note: d.note || "",
+    paymentMethod: d.payment_method ? (d.payment_method.toLowerCase() as PaymentMethod) : undefined,
+    tags: d.tags
+      ? String(d.tags)
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [],
+    receipt: d.receipt || null,
+  };
+}
+
+function toBudget(d: any): Budget {
+  return {
+    id: d.name,
+    categoryId: d.category,
+    amount: d.amount ?? 0,
+    spent: d.spent ?? 0, // recomputed client-side from transactions
+    period: "monthly",
+  };
 }
 
 export const walletService = {
-  getCategories(): Promise<Category[]> {
-    return delay(seed.categories, 120);
+  async getProfile(): Promise<UserProfile> {
+    const s = await call<any>("pocket_wallet.api.get_session");
+    return {
+      name: s.full_name || s.user || "Pocket User",
+      email: s.email || "",
+      avatar: null,
+      currency: s.currency || "USD",
+    };
   },
 
-  getProfile(): Promise<UserProfile> {
-    return delay(seed.profile, 120);
+  async getCategories(): Promise<Category[]> {
+    const rows = await getList("Wallet Category", [
+      "name",
+      "category",
+      "category_type",
+      "emoji",
+      "icon",
+      "color",
+    ]);
+    return rows.map(toCategory);
   },
 
-  getWallets(): Promise<Wallet[]> {
-    return delay(clone(_wallets));
+  async getWallets(): Promise<Wallet[]> {
+    const rows = await getList("Wallet Account", [
+      "name",
+      "account_name",
+      "wallet_type",
+      "account_balance",
+      "color",
+      "icon",
+    ]);
+    return rows.map(toWallet);
   },
 
-  getTransactions(): Promise<Transaction[]> {
-    return delay(clone(_transactions), 650);
+  async getTransactions(): Promise<Transaction[]> {
+    const rows = await getList(
+      "My Wallet",
+      [
+        "name",
+        "type",
+        "amount",
+        "category",
+        "account",
+        "to_account",
+        "date",
+        "time",
+        "note",
+        "payment_method",
+        "tags",
+        "receipt",
+        "status",
+      ],
+      { order_by: "date desc, time desc" },
+    );
+    return rows.map(toTransaction);
   },
 
-  getBudgets(): Promise<Budget[]> {
-    return delay(clone(_budgets), 500);
+  async getBudgets(): Promise<Budget[]> {
+    const rows = await getList("Wallet Budget", ["name", "category", "amount", "period"]);
+    return rows.map(toBudget);
   },
 
-  getNotifications(): Promise<AppNotification[]> {
-    return delay(clone(_notifications), 300);
-  },
+  // --- mutations ------------------------------------------------------------
+  async addTransaction(input: Omit<Transaction, "id">): Promise<Transaction> {
+    const d = new Date(input.date);
+    const doc: Record<string, any> = {
+      doctype: "My Wallet",
+      type: TYPE_TO[input.type],
+      amount: input.amount,
+      account: input.walletId,
+      date: d.toISOString().slice(0, 10),
+      time: d.toTimeString().slice(0, 8),
+      note: input.note || "",
+    };
+    if (input.type === "transfer") {
+      doc.to_account = input.toWalletId;
+    } else {
+      doc.category = input.categoryId;
+      if (input.paymentMethod) doc.payment_method = PAYMENT_TO[input.paymentMethod];
+    }
+    if (input.tags?.length) doc.tags = input.tags.join(", ");
+    if (input.receipt) doc.receipt = input.receipt;
 
-  // --- Mutations (also keep wallet balances consistent, like the backend) ---
-
-  addTransaction(input: Omit<Transaction, "id">): Promise<Transaction> {
-    const tx: Transaction = { ...input, id: uid("t") };
-    _transactions = [tx, ..._transactions];
-    applyToBalance(_wallets, tx, +1);
-    return delay(clone(tx), 300);
+    const created = await call<any>("frappe.client.insert", { doc });
+    return toTransaction(created);
   },
 
   deleteTransaction(id: string): Promise<void> {
-    const tx = _transactions.find((t) => t.id === id);
-    if (tx) applyToBalance(_wallets, tx, -1);
-    _transactions = _transactions.filter((t) => t.id !== id);
-    return delay(undefined, 200);
+    return call("frappe.client.delete", { doctype: "My Wallet", name: id });
   },
 
-  saveBudget(input: Omit<Budget, "id" | "spent"> & { id?: string }): Promise<Budget> {
+  async saveBudget(input: Omit<Budget, "id" | "spent"> & { id?: string }): Promise<void> {
     if (input.id) {
-      _budgets = _budgets.map((b) =>
-        b.id === input.id ? { ...b, amount: input.amount, categoryId: input.categoryId } : b,
-      );
-      return delay(clone(_budgets.find((b) => b.id === input.id)!), 250);
+      await call("frappe.client.set_value", {
+        doctype: "Wallet Budget",
+        name: input.id,
+        fieldname: { amount: input.amount, category: input.categoryId },
+      });
+      return;
     }
-    const budget: Budget = { ...input, id: uid("b"), spent: 0 };
-    _budgets = [..._budgets, budget];
-    return delay(clone(budget), 250);
+    await call("frappe.client.insert", {
+      doc: {
+        doctype: "Wallet Budget",
+        category: input.categoryId,
+        amount: input.amount,
+        period: "Monthly",
+      },
+    });
   },
 
   deleteBudget(id: string): Promise<void> {
-    _budgets = _budgets.filter((b) => b.id !== id);
-    return delay(undefined, 200);
+    return call("frappe.client.delete", { doctype: "Wallet Budget", name: id });
   },
 
-  markNotificationRead(id: string): Promise<void> {
-    _notifications = _notifications.map((n) =>
-      n.id === id ? { ...n, read: true } : n,
-    );
-    return delay(undefined, 100);
+  // --- auth -----------------------------------------------------------------
+  getSession(): Promise<any> {
+    return call("pocket_wallet.api.get_session");
+  },
+  login(usr: string, pwd: string): Promise<any> {
+    return call("login", { usr, pwd });
+  },
+  logout(): Promise<void> {
+    return call("logout");
   },
 };
-
-// Mirrors the backend invariant: income credits the source wallet; expense and
-// transfer debit it; transfer additionally credits the destination wallet.
-// `dir` is +1 to apply, -1 to reverse.
-function applyToBalance(walletList: Wallet[], tx: Transaction, dir: 1 | -1) {
-  const src = walletList.find((w) => w.id === tx.walletId);
-  if (!src) return;
-  if (tx.type === "income") src.balance += dir * tx.amount;
-  else src.balance -= dir * tx.amount;
-  if (tx.type === "transfer" && tx.toWalletId) {
-    const dest = walletList.find((w) => w.id === tx.toWalletId);
-    if (dest) dest.balance += dir * tx.amount;
-  }
-}

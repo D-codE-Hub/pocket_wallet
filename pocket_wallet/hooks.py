@@ -68,7 +68,8 @@ app_license = "mit"
 # ------------
 
 # before_install = "pocket_wallet.install.before_install"
-# after_install = "pocket_wallet.install.after_install"
+after_install = "pocket_wallet.setup.install.after_install"
+after_migrate = "pocket_wallet.setup.install.after_migrate"
 
 # Uninstallation
 # ------------

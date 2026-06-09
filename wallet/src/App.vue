@@ -1,14 +1,8 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
-import MobileLayout from "@/layouts/MobileLayout.vue";
-import { useWalletStore } from "@/stores/useWalletStore";
-
-// Kick off the initial data load once; individual screens read from the store
-// and show their own skeletons while `loading.*` flags are true.
-const store = useWalletStore();
-onMounted(() => store.loadAll());
+// Root just renders the active route. The authed screens mount inside
+// MobileLayout (which kicks off data loading); Login renders on its own.
 </script>
 
 <template>
-  <MobileLayout />
+  <RouterView />
 </template>

@@ -7,10 +7,12 @@ import CategoryCard from "@/components/cards/CategoryCard.vue";
 import Icon from "@/components/ui/Icon.vue";
 import { useUiStore } from "@/stores/useUiStore";
 import { useWalletStore } from "@/stores/useWalletStore";
+import { useFormat } from "@/composables/useFormat";
 import type { PaymentMethod, TransactionType } from "@/types";
 
 const ui = useUiStore();
 const store = useWalletStore();
+const { currencySymbol } = useFormat();
 
 const types: { key: TransactionType; label: string; icon: string }[] = [
   { key: "expense", label: "Expense", icon: "arrow-up" },
@@ -128,7 +130,7 @@ async function save() {
     <div class="my-6 text-center">
       <p class="text-xs font-medium text-slate-400">Amount</p>
       <div class="mt-1 flex items-center justify-center gap-1">
-        <span class="text-3xl font-bold text-slate-400">{{ ui.currency === "USD" ? "$" : "" }}</span>
+        <span class="text-3xl font-bold text-slate-400">{{ currencySymbol }}</span>
         <input
           v-model="form.amount"
           type="number"

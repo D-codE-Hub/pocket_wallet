@@ -12,10 +12,13 @@
   "to_account",
   "account",
   "account_balance",
+  "payment_method",
   "column_break_xvbi",
   "time",
   "date",
   "status",
+  "tags",
+  "receipt",
   "column_break_drll",
   "note"
  ],
@@ -102,6 +105,24 @@
    "hidden": 1,
    "label": "Account Balance",
    "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.type != 'Transfer'",
+   "fieldname": "payment_method",
+   "fieldtype": "Select",
+   "label": "Payment Method",
+   "options": "\nCash\nCard\nUPI\nBank\nWallet"
+  },
+  {
+   "description": "Comma-separated labels shown as chips in the app.",
+   "fieldname": "tags",
+   "fieldtype": "Small Text",
+   "label": "Tags"
+  },
+  {
+   "fieldname": "receipt",
+   "fieldtype": "Attach",
+   "label": "Receipt"
   },
   {
    "fieldname": "column_break_xvbi",
