@@ -6,25 +6,45 @@ with. Everything here is idempotent so it can run on both install and migrate.
 
 import frappe
 
-# (category, type, emoji, icon, color) — these mirror the frontend defaults.
+# (category, type, emoji, icon, color). The `icon` is a key understood by the
+# frontend Icon component; unknown keys fall back to a generic glyph, so the
+# emoji is what users actually see.
 DEFAULT_CATEGORIES = [
+	# --- Expenses ---
 	("Food", "Expense", "🍔", "utensils", "#f97316"),
+	("Grocery", "Expense", "🛒", "bag", "#f59e0b"),
 	("Transport", "Expense", "🚕", "car", "#3b82f6"),
+	("Fuel", "Expense", "⛽", "car", "#0ea5e9"),
 	("Shopping", "Expense", "🛍️", "bag", "#ec4899"),
 	("Bills", "Expense", "🧾", "receipt", "#ef4444"),
-	("Health", "Expense", "💊", "heart", "#14b8a6"),
+	("Electricity Bill", "Expense", "⚡", "receipt", "#eab308"),
+	("Water Bill", "Expense", "💧", "receipt", "#06b6d4"),
+	("Internet", "Expense", "🌐", "globe", "#0284c7"),
+	("Mobile Recharge", "Expense", "📱", "smartphone", "#14b8a6"),
+	("Rent", "Expense", "🏠", "home", "#f43f5e"),
+	("Health", "Expense", "💊", "heart", "#10b981"),
+	("Insurance", "Expense", "🛡️", "shield", "#64748b"),
 	("Entertainment", "Expense", "🎬", "film", "#8b5cf6"),
-	("Travel", "Expense", "✈️", "plane", "#06b6d4"),
+	("Subscriptions", "Expense", "📺", "film", "#a855f7"),
+	("Travel", "Expense", "✈️", "plane", "#0891b2"),
 	("Education", "Expense", "📚", "book", "#6366f1"),
 	("Others", "Expense", "📦", "box", "#64748b"),
+	# --- Income ---
 	("Salary", "Income", "💼", "briefcase", "#10b981"),
-	("Investment", "Income", "📈", "trending-up", "#22c55e"),
+	("Freelance Work", "Income", "💻", "briefcase", "#22c55e"),
+	("Business", "Income", "🏢", "briefcase", "#0ea5e9"),
+	("Bonus", "Income", "🎁", "gift", "#f59e0b"),
+	("Interest", "Income", "🏦", "bank", "#14b8a6"),
+	("Investment", "Income", "📈", "trending-up", "#16a34a"),
 ]
 
 # (account_name, wallet_type, icon, color)
 DEFAULT_WALLETS = [
 	("Cash", "Cash", "wallet", "#10b981"),
 	("Bank Account", "Bank Account", "bank", "#2563eb"),
+	("Google Pay", "E-Wallet", "google", "#f43f5e"),
+	("PhonePe", "E-Wallet", "phonepe", "#8b5cf6"),
+	("Credit Card", "Credit Card", "credit-card", "#f43f5e"),
 ]
 
 
