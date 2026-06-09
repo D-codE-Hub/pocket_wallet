@@ -1,0 +1,95 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+
+  html,
+  body {
+    @apply antialiased;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 dark:bg-ink-900 dark:text-slate-100;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Respect users who prefer reduced motion. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* The standard rounded, soft-shadow surface used across the app. */
+  .card {
+    @apply rounded-3xl bg-white shadow-card ring-1 ring-slate-100 dark:bg-ink-800 dark:ring-white/5;
+  }
+
+  /* Thumb-friendly tap target (>= 44px) for icon buttons. */
+  .tap {
+    @apply inline-flex items-center justify-center transition active:scale-90;
+  }
+
+  /* Frosted bar used for the bottom nav. */
+  .glass {
+    @apply bg-white/80 backdrop-blur-xl dark:bg-ink-850/80;
+  }
+
+  .shimmer {
+    @apply relative overflow-hidden bg-slate-200 dark:bg-ink-700;
+  }
+  .shimmer::after {
+    content: "";
+    @apply absolute inset-0 -translate-x-full;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(255 255 255 / 0.45),
+      transparent
+    );
+    animation: shimmer 1.4s infinite;
+  }
+  .dark .shimmer::after {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(255 255 255 / 0.06),
+      transparent
+    );
+  }
+}
+
+@layer utilities {
+  /* Hide scrollbars on horizontally-scrolling carousels / chip rows. */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* iOS safe-area helpers for full-bleed bottom nav / sheets. */
+  .pb-safe {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+  }
+  .pt-safe {
+    padding-top: calc(env(safe-area-inset-top) + 0.25rem);
+  }
+}

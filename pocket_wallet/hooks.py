@@ -1,7 +1,7 @@
 app_name = "pocket_wallet"
 app_title = "Pocket Wallet"
 app_publisher = "D-codE"
-app_description = "An App to track dilay cash flows"
+app_description = "An App to track daily cash flows"
 app_email = "mailtodecode@gmail.com"
 app_license = "mit"
 # required_apps = []
@@ -227,3 +227,5 @@ app_license = "mit"
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
 
+
+website_route_rules = [{'from_route': '/wallet/<path:app_path>', 'to_route': 'wallet'},]

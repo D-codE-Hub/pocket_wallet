@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/assets/pocket_wallet/wallet/favicon.svg" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0"
+    />
+    <meta name="theme-color" content="#10b981" />
+    <meta name="description" content="Pocket Wallet — Track your money effortlessly." />
+    <title>Pocket Wallet</title>
+    <script>
+      // Apply the saved theme before paint to avoid a flash of the wrong theme.
+      (function () {
+        try {
+          var t = localStorage.getItem("pw-theme");
+          var dark = t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/pocket_wallet/wallet/assets/index-BFCWdDRw.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/pocket_wallet/wallet/assets/useWalletStore-EyjxnIIC.js">
+    <link rel="stylesheet" crossorigin href="/assets/pocket_wallet/wallet/assets/index-DZCzhwOz.css">
+  </head>
+  <body>
+    <div id="app"></div>
+    <script>
+      window.csrf_token = "{{ frappe.session.csrf_token }}";
+    </script>
+  </body>
+</html>
