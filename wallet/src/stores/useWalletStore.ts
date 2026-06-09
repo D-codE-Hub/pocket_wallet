@@ -189,6 +189,14 @@ export const useWalletStore = defineStore("wallet", {
       return tx;
     },
 
+    async updateTransaction(id: string, input: Omit<Transaction, "id">) {
+      const tx = await walletService.updateTransaction(id, input);
+      this.transactions = this.transactions.map((t) => (t.id === id ? tx : t));
+      // Backend re-applied wallet balances on save — pull the new values.
+      this.wallets = await walletService.getWallets();
+      return tx;
+    },
+
     async deleteTransaction(id: string) {
       await walletService.deleteTransaction(id);
       this.transactions = this.transactions.filter((t) => t.id !== id);

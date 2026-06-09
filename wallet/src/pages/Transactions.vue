@@ -190,7 +190,7 @@ function remove(tx: Transaction) {
               :tx="tx"
               swipeable
               @delete="remove"
-              @edit="ui.openAddSheet()"
+              @edit="ui.openEditSheet(tx)"
             />
           </div>
         </div>

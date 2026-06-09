@@ -186,6 +186,36 @@ export const walletService = {
     return toTransaction(created);
   },
 
+  async updateTransaction(id: string, input: Omit<Transaction, "id">): Promise<Transaction> {
+    const d = new Date(input.date);
+    // `type` is set-only-once on My Wallet, so it's intentionally omitted here.
+    // Saving the doc triggers the controller's reverse-then-reapply balance logic.
+    const fieldname: Record<string, any> = {
+      amount: input.amount,
+      account: input.walletId,
+      date: d.toISOString().slice(0, 10),
+      time: d.toTimeString().slice(0, 8),
+      note: input.note || "",
+      tags: input.tags?.length ? input.tags.join(", ") : "",
+      receipt: input.receipt || null,
+    };
+    if (input.type === "transfer") {
+      fieldname.to_account = input.toWalletId;
+      fieldname.category = null;
+      fieldname.payment_method = null;
+    } else {
+      fieldname.category = input.categoryId;
+      fieldname.to_account = null;
+      fieldname.payment_method = input.paymentMethod ? PAYMENT_TO[input.paymentMethod] : null;
+    }
+    const updated = await call<any>("frappe.client.set_value", {
+      doctype: "My Wallet",
+      name: id,
+      fieldname,
+    });
+    return toTransaction(updated);
+  },
+
   deleteTransaction(id: string): Promise<void> {
     return call("frappe.client.delete", { doctype: "My Wallet", name: id });
   },

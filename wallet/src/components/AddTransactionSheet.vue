@@ -45,6 +45,9 @@ const form = reactive({
 const tagInput = ref("");
 const saving = ref(false);
 
+// True when the sheet was opened to edit an existing transaction.
+const isEdit = computed(() => !!ui.editingTransaction);
+
 // Categories filtered to match the chosen direction.
 const visibleCategories = computed(() =>
   store.categories.filter((c) =>
@@ -59,14 +62,43 @@ const canSave = computed(() => {
   return !!form.categoryId;
 });
 
-// Reset the form each time the sheet opens.
+/** ISO date-time → local YYYY-MM-DD (avoids a UTC day-shift). */
+function localDate(iso: string): string {
+  const d = new Date(iso);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
+function resetForm() {
+  const first = store.wallets[0]?.id ?? "";
+  const second = store.wallets[1]?.id ?? first;
+  Object.assign(form, {
+    type: "expense", amount: "", categoryId: "", walletId: first,
+    toWalletId: second, date: today, paymentMethod: "card", note: "", tags: [], receipt: null,
+  });
+}
+
+function prefillFrom(tx: NonNullable<typeof ui.editingTransaction>) {
+  Object.assign(form, {
+    type: tx.type,
+    amount: String(tx.amount),
+    categoryId: tx.categoryId ?? "",
+    walletId: tx.walletId,
+    toWalletId: tx.toWalletId ?? store.wallets.find((w) => w.id !== tx.walletId)?.id ?? "",
+    date: localDate(tx.date),
+    paymentMethod: tx.paymentMethod ?? "card",
+    note: tx.note ?? "",
+    tags: [...(tx.tags ?? [])],
+    receipt: tx.receipt ?? null,
+  });
+}
+
+// Populate the form each time the sheet opens — prefilled in edit mode.
 watch(
   () => ui.addSheetOpen,
   (open) => {
-    if (open) Object.assign(form, {
-      type: "expense", amount: "", categoryId: "", walletId: "cash",
-      toWalletId: "bank", date: today, paymentMethod: "card", note: "", tags: [], receipt: null,
-    });
+    if (!open) return;
+    if (ui.editingTransaction) prefillFrom(ui.editingTransaction);
+    else resetForm();
   },
 );
 
@@ -86,19 +118,28 @@ function attachReceipt() {
 async function save() {
   if (!canSave.value || saving.value) return;
   saving.value = true;
+
+  // Keep the original time on edit; stamp the current time on a new entry.
+  const baseTime = ui.editingTransaction ? new Date(ui.editingTransaction.date) : new Date();
+  const payload = {
+    type: form.type,
+    amount: parseFloat(form.amount),
+    categoryId: form.type === "transfer" ? null : form.categoryId,
+    walletId: form.walletId,
+    toWalletId: form.type === "transfer" ? form.toWalletId : null,
+    date: new Date(`${form.date}T${baseTime.toTimeString().slice(0, 8)}`).toISOString(),
+    note: form.note,
+    paymentMethod: form.type === "transfer" ? undefined : form.paymentMethod,
+    tags: form.tags,
+    receipt: form.receipt,
+  };
+
   try {
-    await store.addTransaction({
-      type: form.type,
-      amount: parseFloat(form.amount),
-      categoryId: form.type === "transfer" ? null : form.categoryId,
-      walletId: form.walletId,
-      toWalletId: form.type === "transfer" ? form.toWalletId : null,
-      date: new Date(`${form.date}T${new Date().toTimeString().slice(0, 8)}`).toISOString(),
-      note: form.note,
-      paymentMethod: form.paymentMethod,
-      tags: form.tags,
-      receipt: form.receipt,
-    });
+    if (ui.editingTransaction) {
+      await store.updateTransaction(ui.editingTransaction.id, payload);
+    } else {
+      await store.addTransaction(payload);
+    }
     ui.closeAddSheet();
   } finally {
     saving.value = false;
@@ -107,19 +148,25 @@ async function save() {
 </script>
 
 <template>
-  <BottomSheet :open="ui.addSheetOpen" title="Add Transaction" @close="ui.closeAddSheet()">
-    <!-- Type selector -->
+  <BottomSheet
+    :open="ui.addSheetOpen"
+    :title="isEdit ? 'Edit Transaction' : 'Add Transaction'"
+    @close="ui.closeAddSheet()"
+  >
+    <!-- Type selector (locked when editing — type can't change after creation) -->
     <div class="grid grid-cols-3 gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-ink-800">
       <button
         v-for="t in types"
         :key="t.key"
         type="button"
-        class="tap flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-semibold transition-all"
-        :class="
+        :disabled="isEdit"
+        class="tap flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-semibold transition-all disabled:cursor-not-allowed"
+        :class="[
           form.type === t.key
             ? 'bg-white text-brand-600 shadow-sm dark:bg-ink-700 dark:text-brand-400'
-            : 'text-slate-500'
-        "
+            : 'text-slate-500',
+          isEdit && form.type !== t.key ? 'opacity-40' : '',
+        ]"
         @click="form.type = t.key; form.categoryId = ''"
       >
         <Icon :name="t.icon" :size="15" /> {{ t.label }}
@@ -232,7 +279,7 @@ async function save() {
       :disabled="!canSave || saving"
       @click="save"
     >
-      {{ saving ? "Saving…" : "Save Transaction" }}
+      {{ saving ? (isEdit ? "Updating…" : "Saving…") : isEdit ? "Update Transaction" : "Save Transaction" }}
     </button>
   </BottomSheet>
 </template>

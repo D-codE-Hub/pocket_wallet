@@ -185,7 +185,7 @@ function remove(tx: Transaction) {
             :tx="tx"
             swipeable
             @delete="remove"
-            @edit="ui.openAddSheet()"
+            @edit="ui.openEditSheet(tx)"
           />
         </div>
         <p class="mt-2 text-center text-[11px] text-slate-400">Swipe a row left to edit or delete</p>
