@@ -73,6 +73,9 @@ class MyWallet(Document):
 
 	def _apply_transaction(self):
 		"""Apply the current transaction to the relevant account balances."""
+		# Soft-deleted entries contribute nothing to balances.
+		if self.status == "Deleted":
+			return
 		amount = flt(self.amount)
 
 		account_doc = frappe.get_doc("Wallet Account", self.account)
@@ -90,6 +93,9 @@ class MyWallet(Document):
 
 	def _reverse_transaction(self, doc):
 		"""Reverse the effect of a transaction on account balances."""
+		# A soft-deleted version never contributed, so there's nothing to undo.
+		if (doc.status or "") == "Deleted":
+			return
 		amount = flt(doc.amount)
 
 		account_doc = frappe.get_doc("Wallet Account", doc.account)

@@ -71,10 +71,14 @@ def get_budget_status():
 			"date": (">=", month_start),
 			"category": ("in", [b.category for b in budgets]),
 		},
-		fields=["category", "sum(amount) as spent"],
-		group_by="category",
+		fields=["category", "amount", "status"],
 	)
-	spent_by_category = {r.category: r.spent or 0 for r in spend_rows}
+	# Sum in Python so soft-deleted ("Deleted") rows are excluded null-safely.
+	spent_by_category: dict = {}
+	for r in spend_rows:
+		if (r.status or "") == "Deleted":
+			continue
+		spent_by_category[r.category] = spent_by_category.get(r.category, 0) + (r.amount or 0)
 
 	for b in budgets:
 		b["spent"] = spent_by_category.get(b.category, 0)

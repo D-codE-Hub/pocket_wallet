@@ -157,7 +157,8 @@ export const walletService = {
       ],
       { order_by: "date desc, time desc" },
     );
-    return rows.map(toTransaction);
+    // Hide soft-deleted entries (status "Deleted"); keep null/empty statuses.
+    return rows.filter((d) => d.status !== "Deleted").map(toTransaction);
   },
 
   async getBudgets(): Promise<Budget[]> {
@@ -220,8 +221,14 @@ export const walletService = {
     return toTransaction(updated);
   },
 
+  // Soft delete: mark the entry "Deleted" (the controller reverses its balance
+  // effect) and keep the row in the backend, rather than hard-deleting it.
   deleteTransaction(id: string): Promise<void> {
-    return call("frappe.client.delete", { doctype: "My Wallet", name: id });
+    return call("frappe.client.set_value", {
+      doctype: "My Wallet",
+      name: id,
+      fieldname: { status: "Deleted" },
+    });
   },
 
   async saveBudget(input: Omit<Budget, "id" | "spent"> & { id?: string }): Promise<void> {
