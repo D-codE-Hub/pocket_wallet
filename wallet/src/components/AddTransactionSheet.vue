@@ -8,7 +8,7 @@ import Icon from "@/components/ui/Icon.vue";
 import { useUiStore } from "@/stores/useUiStore";
 import { useWalletStore } from "@/stores/useWalletStore";
 import { useFormat } from "@/composables/useFormat";
-import type { PaymentMethod, TransactionType } from "@/types";
+import type { PaymentMethod, TransactionType, WalletType } from "@/types";
 
 const ui = useUiStore();
 const store = useWalletStore();
@@ -19,13 +19,21 @@ const types: { key: TransactionType; label: string; icon: string }[] = [
   { key: "income", label: "Income", icon: "arrow-down" },
   { key: "transfer", label: "Transfer", icon: "transfer" },
 ];
-const methods: { key: PaymentMethod; label: string }[] = [
-  { key: "cash", label: "Cash" },
-  { key: "card", label: "Card" },
-  { key: "upi", label: "UPI" },
-  { key: "bank", label: "Bank" },
-  { key: "wallet", label: "Wallet" },
-];
+const PAYMENT_LABEL: Record<PaymentMethod, string> = {
+  cash: "Cash",
+  card: "Card",
+  upi: "UPI",
+  bank: "Bank",
+  wallet: "Wallet",
+};
+
+// Payment method is derived from the chosen wallet's type — not entered by hand.
+const WALLET_TO_PAYMENT: Record<WalletType, PaymentMethod> = {
+  cash: "cash",
+  bank: "bank",
+  credit: "card",
+  ewallet: "wallet",
+};
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -36,11 +44,17 @@ const form = reactive({
   walletId: "cash",
   toWalletId: "bank",
   date: today,
-  paymentMethod: "card" as PaymentMethod,
   note: "",
   tags: [] as string[],
   receipt: null as string | null,
 });
+
+// Auto payment method from the selected wallet's type.
+const paymentMethod = computed<PaymentMethod>(() => {
+  const w = store.walletMap[form.walletId];
+  return w ? WALLET_TO_PAYMENT[w.type] : "cash";
+});
+const paymentLabel = computed(() => PAYMENT_LABEL[paymentMethod.value]);
 
 const tagInput = ref("");
 const saving = ref(false);
@@ -69,11 +83,11 @@ function localDate(iso: string): string {
 }
 
 function resetForm() {
-  const first = store.wallets[0]?.id ?? "";
-  const second = store.wallets[1]?.id ?? first;
+  const preferred = store.defaultWalletId || store.wallets[0]?.id || "";
+  const second = store.wallets.find((w) => w.id !== preferred)?.id ?? preferred;
   Object.assign(form, {
-    type: "expense", amount: "", categoryId: "", walletId: first,
-    toWalletId: second, date: today, paymentMethod: "card", note: "", tags: [], receipt: null,
+    type: "expense", amount: "", categoryId: "", walletId: preferred,
+    toWalletId: second, date: today, note: "", tags: [], receipt: null,
   });
 }
 
@@ -85,7 +99,6 @@ function prefillFrom(tx: NonNullable<typeof ui.editingTransaction>) {
     walletId: tx.walletId,
     toWalletId: tx.toWalletId ?? store.wallets.find((w) => w.id !== tx.walletId)?.id ?? "",
     date: localDate(tx.date),
-    paymentMethod: tx.paymentMethod ?? "card",
     note: tx.note ?? "",
     tags: [...(tx.tags ?? [])],
     receipt: tx.receipt ?? null,
@@ -133,7 +146,7 @@ async function save() {
     toWalletId: form.type === "transfer" ? form.toWalletId : null,
     date: new Date(`${form.date}T${baseTime.toTimeString().slice(0, 8)}`).toISOString(),
     note: form.note,
-    paymentMethod: form.type === "transfer" ? undefined : form.paymentMethod,
+    paymentMethod: form.type === "transfer" ? undefined : paymentMethod.value,
     tags: form.tags,
     receipt: form.receipt,
   };
@@ -233,9 +246,13 @@ async function save() {
       </div>
       <div v-if="form.type !== 'transfer'" class="min-w-0">
         <p class="mb-1.5 text-sm font-semibold">Payment</p>
-        <select v-model="form.paymentMethod" class="pw-input appearance-none">
-          <option v-for="m in methods" :key="m.key" :value="m.key">{{ m.label }}</option>
-        </select>
+        <div class="pw-input flex items-center justify-between gap-2 text-slate-500">
+          <span class="truncate">{{ paymentLabel }}</span>
+          <span
+            class="shrink-0 rounded-full bg-slate-200 px-1.5 py-0.5 text-[9px] font-bold uppercase text-slate-500 dark:bg-ink-700"
+            >Auto</span
+          >
+        </div>
       </div>
     </div>
 

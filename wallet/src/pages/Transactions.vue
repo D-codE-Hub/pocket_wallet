@@ -20,7 +20,7 @@ const ui = useUiStore();
 const query = ref("");
 const typeFilter = ref<TransactionType | "all">("all");
 const categoryFilter = ref<string | "all">("all");
-const range = ref<"all" | "week" | "month">("all");
+const range = ref<"all" | "week" | "month" | "custom">("all");
 const refreshing = ref(false);
 
 const types = [
@@ -30,17 +30,45 @@ const types = [
   { key: "transfer", label: "Transfer" },
 ] as const;
 const ranges = [
-  { key: "all", label: "All time" },
-  { key: "week", label: "This week" },
-  { key: "month", label: "This month" },
+  { key: "all", label: "All" },
+  { key: "week", label: "Week" },
+  { key: "month", label: "Month" },
+  { key: "custom", label: "Custom" },
 ] as const;
+
+// Local YYYY-MM-DD helpers (avoid UTC day-shift).
+const localDay = (d = new Date()) =>
+  new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+function firstOfMonth(): string {
+  const d = new Date();
+  return localDay(new Date(d.getFullYear(), d.getMonth(), 1));
+}
+const customFrom = ref(firstOfMonth());
+const customTo = ref(localDay());
+
+// Calendar-based, period-to-date (week = Mon→today, month = 1st→today).
+function startOfWeek(): number {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d.getTime();
+}
+function startOfMonth(): number {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(1);
+  return d.getTime();
+}
 
 function inRange(iso: string): boolean {
   if (range.value === "all") return true;
-  const d = new Date(iso).getTime();
-  const now = Date.now();
-  const days = range.value === "week" ? 7 : 31;
-  return d >= now - days * 86400_000;
+  const ts = new Date(iso).getTime();
+  if (range.value === "week") return ts >= startOfWeek();
+  if (range.value === "month") return ts >= startOfMonth();
+  // custom from/to (inclusive)
+  const from = new Date(`${customFrom.value}T00:00:00`).getTime();
+  const to = new Date(`${customTo.value}T23:59:59`).getTime();
+  return ts >= from && ts <= to;
 }
 
 const filtered = computed(() => {
@@ -77,7 +105,7 @@ const grouped = computed(() => {
 });
 
 // Reset paging whenever filters change.
-watch([query, typeFilter, categoryFilter, range], () => (limit.value = PAGE));
+watch([query, typeFilter, categoryFilter, range, customFrom, customTo], () => (limit.value = PAGE));
 
 const sentinel = ref<HTMLElement | null>(null);
 let observer: IntersectionObserver | null = null;
@@ -147,7 +175,7 @@ function remove(tx: Transaction) {
       </div>
 
       <!-- Date range -->
-      <div class="grid grid-cols-3 gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-ink-800">
+      <div class="grid grid-cols-4 gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-ink-800">
         <button
           v-for="r in ranges"
           :key="r.key"
@@ -161,6 +189,28 @@ function remove(tx: Transaction) {
         >
           {{ r.label }}
         </button>
+      </div>
+
+      <!-- Custom from / to -->
+      <div v-if="range === 'custom'" class="grid grid-cols-2 gap-3">
+        <div class="min-w-0">
+          <p class="mb-1.5 text-xs font-semibold text-slate-500">From</p>
+          <input
+            v-model="customFrom"
+            type="date"
+            :max="customTo"
+            class="w-full appearance-none rounded-2xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium outline-none focus:border-brand-400 dark:border-white/10 dark:bg-ink-800"
+          />
+        </div>
+        <div class="min-w-0">
+          <p class="mb-1.5 text-xs font-semibold text-slate-500">To</p>
+          <input
+            v-model="customTo"
+            type="date"
+            :min="customFrom"
+            class="w-full appearance-none rounded-2xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium outline-none focus:border-brand-400 dark:border-white/10 dark:bg-ink-800"
+          />
+        </div>
       </div>
 
       <!-- List -->

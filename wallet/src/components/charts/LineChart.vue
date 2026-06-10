@@ -69,10 +69,9 @@ const gradId = `lg-${Math.random().toString(36).slice(2, 8)}`;
         :key="i"
         :cx="c.x"
         :cy="c.y"
-        r="2.6"
+        :r="i === coords.length - 1 ? 3.4 : 2.4"
         :fill="color"
-        class="opacity-0"
-        :class="i === coords.length - 1 ? '!opacity-100' : ''"
+        :vector-effect="'non-scaling-stroke'"
       />
     </svg>
     <div class="mt-1.5 flex justify-between px-1 text-[10px] font-medium text-slate-400">

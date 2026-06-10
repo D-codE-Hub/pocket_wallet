@@ -9,7 +9,7 @@ the current session and a server-side spend rollup.
 """
 
 import frappe
-from frappe.utils import get_fullname, getdate
+from frappe.utils import cint, flt, get_fullname, getdate
 
 from pocket_wallet.permissions import has_full_access
 from pocket_wallet.setup.install import ensure_user_wallets
@@ -102,6 +102,69 @@ def _shares(doc):
 		"owner": doc.owner,
 		"shared_with": [row.user for row in (doc.shared_with or [])],
 	}
+
+
+# --- Wallet create / edit / default -----------------------------------------
+
+
+def _assert_wallet_owner(doc):
+	if doc.owner != frappe.session.user and not has_full_access():
+		frappe.throw("Only the wallet owner can edit this wallet", frappe.PermissionError)
+
+
+def _make_default(wallet, owner):
+	"""Mark `wallet` as the user's single default (clears it on their others)."""
+	for name in frappe.get_all("Wallet Account", filters={"owner": owner}, pluck="name"):
+		frappe.db.set_value("Wallet Account", name, "is_default", 1 if name == wallet else 0)
+
+
+@frappe.whitelist()
+def save_wallet(
+	name=None,
+	account_name=None,
+	wallet_type=None,
+	color=None,
+	icon=None,
+	account_balance=None,
+	is_default=None,
+):
+	"""Create a new wallet (no `name`) or update an existing owned one."""
+	if name:
+		doc = frappe.get_doc("Wallet Account", name)
+		_assert_wallet_owner(doc)
+	else:
+		doc = frappe.new_doc("Wallet Account")
+
+	if account_name is not None:
+		doc.account_name = account_name
+	if wallet_type is not None:
+		doc.wallet_type = wallet_type
+	if color is not None:
+		doc.color = color
+	if icon is not None:
+		doc.icon = icon
+	if account_balance is not None:
+		# Setting a balance manually is an explicit opening/adjustment action.
+		doc.edit_account_balance = 1
+		doc.account_balance = flt(account_balance)
+
+	doc.save()  # respects create/write perms; owner is set to the session user
+
+	if cint(is_default):
+		_make_default(doc.name, doc.owner)
+		frappe.db.commit()
+
+	return {"name": doc.name}
+
+
+@frappe.whitelist()
+def set_default_wallet(wallet):
+	"""Set the caller's default wallet (used to preselect it in the app)."""
+	doc = frappe.get_doc("Wallet Account", wallet)
+	_assert_wallet_owner(doc)
+	_make_default(wallet, doc.owner)
+	frappe.db.commit()
+	return {"ok": True}
 
 
 @frappe.whitelist()

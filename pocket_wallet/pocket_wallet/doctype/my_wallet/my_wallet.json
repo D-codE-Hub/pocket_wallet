@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "allow_rename": 1,
  "autoname": "format:{type}-{account}-{DD}-{MM}-{#####}",
  "creation": "2024-10-28 13:09:38.292635",
@@ -135,7 +136,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-03-04 16:48:03.849412",
+ "modified": "2026-06-10 14:41:14.400753",
  "modified_by": "Administrator",
  "module": "Pocket Wallet",
  "name": "My Wallet",

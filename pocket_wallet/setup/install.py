@@ -84,7 +84,7 @@ def ensure_user_wallets(user: str):
 	if frappe.db.exists("Wallet Account", {"owner": user}):
 		return
 
-	for name, wtype, icon, color in DEFAULT_WALLETS:
+	for idx, (name, wtype, icon, color) in enumerate(DEFAULT_WALLETS):
 		frappe.get_doc(
 			{
 				"doctype": "Wallet Account",
@@ -93,6 +93,8 @@ def ensure_user_wallets(user: str):
 				"icon": icon,
 				"color": color,
 				"account_balance": 0,
+				# Make the first provisioned wallet the user's default.
+				"is_default": 1 if idx == 0 else 0,
 			}
 		).insert(ignore_permissions=True)
 	frappe.db.commit()

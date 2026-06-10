@@ -30,6 +30,8 @@ export interface Wallet {
   icon: string;
   /** User id that owns this wallet (creator). */
   owner?: string;
+  /** The user's default wallet (preselected when adding a transaction). */
+  isDefault?: boolean;
 }
 
 export interface WalletShares {

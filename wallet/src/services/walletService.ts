@@ -55,6 +55,7 @@ function toWallet(d: any): Wallet {
     color: d.color || "#10b981",
     icon: d.icon || "wallet",
     owner: d.owner,
+    isDefault: !!d.is_default,
   };
 }
 
@@ -133,6 +134,7 @@ export const walletService = {
       "color",
       "icon",
       "owner",
+      "is_default",
     ]);
     return rows.map(toWallet);
   },
@@ -252,6 +254,25 @@ export const walletService = {
 
   deleteBudget(id: string): Promise<void> {
     return call("frappe.client.delete", { doctype: "Wallet Budget", name: id });
+  },
+
+  // --- wallet create / edit / default ---------------------------------------
+  saveWallet(payload: {
+    name?: string;
+    account_name: string;
+    wallet_type: string;
+    color: string;
+    icon: string;
+    account_balance?: number;
+    is_default?: boolean;
+  }): Promise<{ name: string }> {
+    return call("pocket_wallet.api.save_wallet", {
+      ...payload,
+      is_default: payload.is_default ? 1 : 0,
+    });
+  },
+  setDefaultWallet(wallet: string): Promise<{ ok: boolean }> {
+    return call("pocket_wallet.api.set_default_wallet", { wallet });
   },
 
   // --- wallet sharing -------------------------------------------------------

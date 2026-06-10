@@ -15,19 +15,52 @@ import { useFormat } from "@/composables/useFormat";
 const store = useWalletStore();
 const { formatMoney } = useFormat();
 
-type Period = "week" | "month" | "year";
+type Period = "week" | "month" | "year" | "custom";
 const period = ref<Period>("month");
 const periods: { key: Period; label: string }[] = [
   { key: "week", label: "Week" },
   { key: "month", label: "Month" },
   { key: "year", label: "Year" },
+  { key: "custom", label: "Custom" },
 ];
 
-const windowDays = computed(() => (period.value === "week" ? 7 : period.value === "month" ? 30 : 365));
+function startToday(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+const localDay = (d = new Date()) =>
+  new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+
+// Custom range inputs (default to this month-to-date).
+const customFrom = ref(localDay(new Date(new Date().getFullYear(), new Date().getMonth(), 1)));
+const customTo = ref(localDay());
+
+// Period boundaries are calendar-based and run up to *today* (period-to-date),
+// except `custom`, which uses the chosen from/to dates.
+const rangeStart = computed(() => {
+  if (period.value === "custom") return new Date(`${customFrom.value}T00:00:00`);
+  const d = startToday();
+  if (period.value === "week") {
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // Monday
+  } else if (period.value === "month") {
+    d.setDate(1);
+  } else {
+    d.setMonth(0, 1); // Jan 1
+  }
+  return d;
+});
+const rangeEnd = computed(() =>
+  period.value === "custom" ? new Date(`${customTo.value}T23:59:59`) : new Date(),
+);
 
 const inWindow = computed(() => {
-  const cutoff = Date.now() - windowDays.value * 86400_000;
-  return store.transactions.filter((t) => new Date(t.date).getTime() >= cutoff);
+  const start = rangeStart.value.getTime();
+  const end = rangeEnd.value.getTime();
+  return store.transactions.filter((t) => {
+    const ts = new Date(t.date).getTime();
+    return ts >= start && ts <= end;
+  });
 });
 
 const totalIncome = computed(() =>
@@ -37,34 +70,40 @@ const totalExpense = computed(() =>
   inWindow.value.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0),
 );
 
-// Expense trend buckets — daily for week/month, monthly for year.
+const sameDay = (iso: string, d: Date) => new Date(iso).toDateString() === d.toDateString();
+
+// Expense trend buckets across the selected range:
+//   year             → one point per month (Jan → current month)
+//   week/month/custom → one point per day from start through end
 const trend = computed(() => {
   const buckets: { label: string; value: number }[] = [];
+
   if (period.value === "year") {
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i, 1);
-      const label = d.toLocaleDateString("en-US", { month: "short" });
+    const today = startToday();
+    for (let m = 0; m <= today.getMonth(); m++) {
+      const d = new Date(today.getFullYear(), m, 1);
       const value = store.transactions
         .filter(
           (t) =>
             t.type === "expense" &&
-            new Date(t.date).getMonth() === d.getMonth() &&
-            new Date(t.date).getFullYear() === d.getFullYear(),
+            new Date(t.date).getMonth() === m &&
+            new Date(t.date).getFullYear() === today.getFullYear(),
         )
         .reduce((s, t) => s + t.amount, 0);
-      buckets.push({ label, value });
+      buckets.push({ label: d.toLocaleDateString("en-US", { month: "short" }), value });
     }
   } else {
-    const days = windowDays.value;
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const label = d.toLocaleDateString("en-US", { day: "numeric" });
+    const cur = new Date(rangeStart.value);
+    cur.setHours(0, 0, 0, 0);
+    const end = rangeEnd.value;
+    const labelOpts: Intl.DateTimeFormatOptions =
+      period.value === "week" ? { weekday: "short" } : { month: "short", day: "numeric" };
+    while (cur <= end) {
       const value = store.transactions
-        .filter((t) => t.type === "expense" && new Date(t.date).toDateString() === d.toDateString())
+        .filter((t) => t.type === "expense" && sameDay(t.date, cur))
         .reduce((s, t) => s + t.amount, 0);
-      buckets.push({ label, value });
+      buckets.push({ label: cur.toLocaleDateString("en-US", labelOpts), value });
+      cur.setDate(cur.getDate() + 1);
     }
   }
   return buckets;
@@ -118,7 +157,7 @@ const hasData = computed(() => inWindow.value.length > 0);
 
     <div class="space-y-5 px-5 pt-2">
       <!-- Period switch -->
-      <div class="grid grid-cols-3 gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-ink-800">
+      <div class="grid grid-cols-4 gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-ink-800">
         <button
           v-for="p in periods"
           :key="p.key"
@@ -132,6 +171,28 @@ const hasData = computed(() => inWindow.value.length > 0);
         >
           {{ p.label }}
         </button>
+      </div>
+
+      <!-- Custom from / to -->
+      <div v-if="period === 'custom'" class="grid grid-cols-2 gap-3">
+        <div class="min-w-0">
+          <p class="mb-1.5 text-xs font-semibold text-slate-500">From</p>
+          <input
+            v-model="customFrom"
+            type="date"
+            :max="customTo"
+            class="w-full appearance-none rounded-2xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium outline-none focus:border-brand-400 dark:border-white/10 dark:bg-ink-800"
+          />
+        </div>
+        <div class="min-w-0">
+          <p class="mb-1.5 text-xs font-semibold text-slate-500">To</p>
+          <input
+            v-model="customTo"
+            type="date"
+            :min="customFrom"
+            class="w-full appearance-none rounded-2xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium outline-none focus:border-brand-400 dark:border-white/10 dark:bg-ink-800"
+          />
+        </div>
       </div>
 
       <template v-if="store.loading.transactions">

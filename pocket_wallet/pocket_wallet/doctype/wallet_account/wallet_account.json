@@ -15,6 +15,7 @@
   "column_break_rtti",
   "account_balance",
   "edit_account_balance",
+  "is_default",
   "sharing_section",
   "shared_with"
  ],
@@ -65,6 +66,12 @@
    "fieldname": "edit_account_balance",
    "fieldtype": "Check",
    "label": "Edit Account Balance"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_default",
+   "fieldtype": "Check",
+   "label": "Default Wallet"
   },
   {
    "fieldname": "column_break_djhw",

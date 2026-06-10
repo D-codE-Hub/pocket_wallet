@@ -53,6 +53,16 @@ export const useWalletStore = defineStore("wallet", {
       return Object.fromEntries(state.wallets.map((w) => [w.id, w]));
     },
 
+    /** The user's default wallet id (falls back to the first wallet). */
+    defaultWalletId(state): string {
+      return state.wallets.find((w) => w.isDefault)?.id ?? state.wallets[0]?.id ?? "";
+    },
+
+    /** Wallets with the default one first (stable order otherwise). */
+    walletsDefaultFirst(state): Wallet[] {
+      return [...state.wallets].sort((a, b) => Number(!!b.isDefault) - Number(!!a.isDefault));
+    },
+
     totalBalance(state): number {
       return state.wallets.reduce((sum, w) => sum + w.balance, 0);
     },
@@ -181,6 +191,20 @@ export const useWalletStore = defineStore("wallet", {
       ]);
       this.wallets = wallets;
       this.transactions = transactions;
+    },
+
+    async reloadWallets() {
+      this.wallets = await walletService.getWallets();
+    },
+
+    async saveWallet(payload: Parameters<typeof walletService.saveWallet>[0]) {
+      await walletService.saveWallet(payload);
+      await this.reloadWallets();
+    },
+
+    async setDefaultWallet(walletId: string) {
+      await walletService.setDefaultWallet(walletId);
+      await this.reloadWallets();
     },
 
     async addTransaction(input: Omit<Transaction, "id">) {

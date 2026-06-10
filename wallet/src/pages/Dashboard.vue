@@ -94,7 +94,7 @@ function remove(tx: Transaction) {
           <SkeletonLoader v-for="i in 3" :key="i" class="h-40 w-64 shrink-0" />
         </div>
         <div v-else class="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-1">
-          <div v-for="w in store.wallets" :key="w.id" class="snap-start">
+          <div v-for="w in store.walletsDefaultFirst" :key="w.id" class="snap-start">
             <WalletCard :wallet="w" />
           </div>
         </div>
