@@ -12,7 +12,27 @@ interface UiState {
   editingTransaction: Transaction | null;
   // Preselected type for a fresh Add sheet (from Quick Actions); null = default.
   addPresetType: TransactionType | null;
+  // Global confirmation dialog state.
+  confirmDialog: ConfirmState;
 }
+
+interface ConfirmState {
+  open: boolean;
+  title: string;
+  message: string;
+  confirmLabel: string;
+  danger: boolean;
+}
+
+interface ConfirmOptions {
+  title: string;
+  message?: string;
+  confirmLabel?: string;
+  danger?: boolean;
+}
+
+// Resolver for the in-flight confirm() promise (kept out of reactive state).
+let confirmResolve: ((value: boolean) => void) | null = null;
 
 const THEME_KEY = "pw-theme";
 const CURRENCY_KEY = "pw-currency";
@@ -33,6 +53,7 @@ export const useUiStore = defineStore("ui", {
     addSheetOpen: false,
     editingTransaction: null,
     addPresetType: null,
+    confirmDialog: { open: false, title: "", message: "", confirmLabel: "Confirm", danger: false },
   }),
 
   getters: {
@@ -73,6 +94,25 @@ export const useUiStore = defineStore("ui", {
     closeAddSheet() {
       this.addSheetOpen = false;
       this.editingTransaction = null;
+    },
+
+    /** Open the confirm dialog; resolves true (confirmed) or false (cancelled). */
+    confirm(opts: ConfirmOptions): Promise<boolean> {
+      this.confirmDialog = {
+        open: true,
+        title: opts.title,
+        message: opts.message ?? "",
+        confirmLabel: opts.confirmLabel ?? "Confirm",
+        danger: !!opts.danger,
+      };
+      return new Promise((resolve) => {
+        confirmResolve = resolve;
+      });
+    },
+    resolveConfirm(value: boolean) {
+      this.confirmDialog.open = false;
+      confirmResolve?.(value);
+      confirmResolve = null;
     },
   },
 });

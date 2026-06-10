@@ -41,8 +41,14 @@ function onQuickAction(a: { type: TransactionType | null }) {
   else ui.openAddSheet(a.type);
 }
 
-function remove(tx: Transaction) {
-  store.deleteTransaction(tx.id);
+async function remove(tx: Transaction) {
+  const ok = await ui.confirm({
+    title: "Delete transaction?",
+    message: "This entry will be removed from your activity.",
+    confirmLabel: "Delete",
+    danger: true,
+  });
+  if (ok) store.deleteTransaction(tx.id);
 }
 </script>
 
@@ -93,10 +99,13 @@ function remove(tx: Transaction) {
         <div v-if="store.loading.wallets" class="flex gap-3 overflow-hidden">
           <SkeletonLoader v-for="i in 3" :key="i" class="h-40 w-64 shrink-0" />
         </div>
-        <div v-else class="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-1">
-          <div v-for="w in store.walletsDefaultFirst" :key="w.id" class="snap-start">
-            <WalletCard :wallet="w" />
-          </div>
+        <div class="no-scrollbar flex snap-x snap-mandatory gap-3 overflow-x-auto pb-1" v-else>
+          <WalletCard
+            v-for="w in store.walletsDefaultFirst"
+            :key="w.id"
+            :wallet="w"
+            class="snap-start shrink-0"
+          />
         </div>
       </section>
 

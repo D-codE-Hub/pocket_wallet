@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Global Add-Transaction bottom sheet. Driven by the UI store so the FAB on any
 // screen can open it. Builds a Transaction and hands it to the wallet store.
-import { computed, reactive, ref, watch } from "vue";
+import { computed, nextTick, reactive, ref, watch } from "vue";
 import BottomSheet from "@/components/ui/BottomSheet.vue";
 import CategoryCard from "@/components/cards/CategoryCard.vue";
 import Icon from "@/components/ui/Icon.vue";
@@ -58,6 +58,10 @@ const paymentLabel = computed(() => PAYMENT_LABEL[paymentMethod.value]);
 
 const tagInput = ref("");
 const saving = ref(false);
+const amountInput = ref<HTMLInputElement | null>(null);
+// Count + flash for the "Save & add another" batch flow.
+const addedCount = ref(0);
+const justAdded = ref(false);
 
 // True when the sheet was opened to edit an existing transaction.
 const isEdit = computed(() => !!ui.editingTransaction);
@@ -110,6 +114,7 @@ watch(
   () => ui.addSheetOpen,
   (open) => {
     if (!open) return;
+    addedCount.value = 0;
     if (ui.editingTransaction) {
       prefillFrom(ui.editingTransaction);
     } else {
@@ -132,7 +137,7 @@ function attachReceipt() {
   form.receipt = `receipt-${Date.now().toString(36)}.jpg`;
 }
 
-async function save() {
+async function save(addAnother = false) {
   if (!canSave.value || saving.value) return;
   saving.value = true;
 
@@ -157,7 +162,22 @@ async function save() {
     } else {
       await store.addTransaction(payload);
     }
-    ui.closeAddSheet();
+
+    if (addAnother && !ui.editingTransaction) {
+      // Keep type / wallet / date / category for fast repeat entry; clear the
+      // bits that change each time and refocus the amount.
+      addedCount.value += 1;
+      form.amount = "";
+      form.note = "";
+      form.tags = [];
+      form.receipt = null;
+      justAdded.value = true;
+      setTimeout(() => (justAdded.value = false), 1400);
+      await nextTick();
+      amountInput.value?.focus();
+    } else {
+      ui.closeAddSheet();
+    }
   } finally {
     saving.value = false;
   }
@@ -196,6 +216,7 @@ async function save() {
       <div class="mt-1 flex items-center justify-center gap-1">
         <span class="text-3xl font-bold text-slate-400">{{ currencySymbol }}</span>
         <input
+          ref="amountInput"
           v-model="form.amount"
           type="number"
           inputmode="decimal"
@@ -208,7 +229,8 @@ async function save() {
     <!-- Category (not for transfers) -->
     <div v-if="form.type !== 'transfer'" class="mb-5">
       <p class="mb-2 text-sm font-semibold">Category</p>
-      <div class="grid grid-cols-4 gap-2">
+      <!-- Show ~2 rows; the rest scroll within this area. -->
+      <div class="grid max-h-52 grid-cols-4 gap-2 overflow-y-auto pr-1">
         <CategoryCard
           v-for="c in visibleCategories"
           :key="c.id"
@@ -293,15 +315,45 @@ async function save() {
       {{ form.receipt ? form.receipt : "Attach receipt" }}
     </button>
 
-    <!-- Save -->
-    <button
-      type="button"
-      class="tap sticky bottom-2 mb-2 w-full rounded-2xl bg-gradient-to-r from-brand-500 to-brand-600 py-4 text-base font-bold text-white shadow-glow disabled:opacity-40"
-      :disabled="!canSave || saving"
-      @click="save"
+    <!-- "Added" flash + running count for batch entry -->
+    <p
+      v-if="!isEdit && (justAdded || addedCount)"
+      class="mb-2 flex items-center justify-center gap-1.5 text-sm font-semibold text-brand-600 dark:text-brand-400"
     >
-      {{ saving ? (isEdit ? "Updating…" : "Saving…") : isEdit ? "Update Transaction" : "Save Transaction" }}
-    </button>
+      <Icon v-if="justAdded" name="check" :size="16" />
+      <span>{{ addedCount }} added this session</span>
+    </p>
+
+    <!-- Save -->
+    <div class="sticky bottom-2 mb-2 space-y-2">
+      <button
+        v-if="!isEdit"
+        type="button"
+        class="tap w-full rounded-2xl border-2 border-brand-500 py-3 text-sm font-bold text-brand-600 disabled:opacity-40 dark:text-brand-400"
+        :disabled="!canSave || saving"
+        @click="save(true)"
+      >
+        Save &amp; add another
+      </button>
+      <button
+        type="button"
+        class="tap w-full rounded-2xl bg-gradient-to-r from-brand-500 to-brand-600 py-4 text-base font-bold text-white shadow-glow disabled:opacity-40"
+        :disabled="!canSave || saving"
+        @click="save(false)"
+      >
+        {{
+          saving
+            ? isEdit
+              ? "Updating…"
+              : "Saving…"
+            : isEdit
+              ? "Update Transaction"
+              : addedCount
+                ? "Save & close"
+                : "Save Transaction"
+        }}
+      </button>
+    </div>
   </BottomSheet>
 </template>
 

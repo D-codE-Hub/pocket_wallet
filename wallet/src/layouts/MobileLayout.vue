@@ -7,6 +7,7 @@ import { useRoute } from "vue-router";
 import BottomNavigation from "@/components/ui/BottomNavigation.vue";
 import FloatingActionButton from "@/components/ui/FloatingActionButton.vue";
 import AddTransactionSheet from "@/components/AddTransactionSheet.vue";
+import ConfirmDialog from "@/components/ui/ConfirmDialog.vue";
 import { useWalletStore } from "@/stores/useWalletStore";
 
 const route = useRoute();
@@ -34,5 +35,6 @@ onMounted(() => store.loadAll());
     <FloatingActionButton />
     <BottomNavigation />
     <AddTransactionSheet />
+    <ConfirmDialog />
   </div>
 </template>

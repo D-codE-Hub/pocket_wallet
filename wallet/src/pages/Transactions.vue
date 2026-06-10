@@ -127,8 +127,14 @@ async function pullRefresh() {
   refreshing.value = false;
 }
 
-function remove(tx: Transaction) {
-  store.deleteTransaction(tx.id);
+async function remove(tx: Transaction) {
+  const ok = await ui.confirm({
+    title: "Delete transaction?",
+    message: "This entry will be removed from your activity.",
+    confirmLabel: "Delete",
+    danger: true,
+  });
+  if (ok) store.deleteTransaction(tx.id);
 }
 </script>
 
