@@ -97,4 +97,3 @@ def ensure_user_wallets(user: str):
 				"is_default": 1 if idx == 0 else 0,
 			}
 		).insert(ignore_permissions=True)
-	frappe.db.commit()

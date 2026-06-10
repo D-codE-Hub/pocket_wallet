@@ -152,7 +152,6 @@ def save_wallet(
 
 	if cint(is_default):
 		_make_default(doc.name, doc.owner)
-		frappe.db.commit()
 
 	return {"name": doc.name}
 
@@ -163,7 +162,6 @@ def set_default_wallet(wallet):
 	doc = frappe.get_doc("Wallet Account", wallet)
 	_assert_wallet_owner(doc)
 	_make_default(wallet, doc.owner)
-	frappe.db.commit()
 	return {"ok": True}
 
 
